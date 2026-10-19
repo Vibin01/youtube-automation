@@ -10,7 +10,7 @@ generator client {
 model AppSettings {
   id                 String   @id @default("default")
   geminiApiKey       String?
-  geminiModel        String   @default("gemini-2.5-flash")
+  geminiModel        String   @default("gemini-3.8-flash")
   defaultLanguage    String   @default("English")
   defaultVideoFormat String   @default("SHORTS")
   defaultTone        String   @default("Engaging")

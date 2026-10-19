@@ -92,7 +92,7 @@ export type PublishingInput = z.infer<typeof PublishingInputSchema>;
 
 export const SettingsUpdateSchema = z.object({
   geminiApiKey: z.string().optional(),
-  geminiModel: z.string().default("gemini-2.5-flash"),
+  geminiModel: z.string().default("gemini-3.8-flash"),
   defaultLanguage: z.enum(["English", "Tamil"]).default("English"),
   defaultVideoFormat: z.enum(["SHORTS", "LONG_FORM"]).default("SHORTS"),
   defaultTone: z.string().default("Engaging"),

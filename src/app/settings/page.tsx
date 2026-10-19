@@ -21,7 +21,7 @@ export default function SettingsPage() {
   const [geminiApiKey, setGeminiApiKey] = useState("");
   const [hasExistingKey, setHasExistingKey] = useState(false);
   const [maskedKey, setMaskedKey] = useState("");
-  const [geminiModel, setGeminiModel] = useState("gemini-2.5-flash");
+  const [geminiModel, setGeminiModel] = useState("gemini-3.8-flash");
 
   const [defaultLanguage, setDefaultLanguage] = useState<"English" | "Tamil">("English");
   const [defaultVideoFormat, setDefaultVideoFormat] = useState<"SHORTS" | "LONG_FORM">("SHORTS");
@@ -43,7 +43,7 @@ export default function SettingsPage() {
       .then((json) => {
         if (json.success) {
           const d = json.data;
-          setGeminiModel(d.geminiModel || "gemini-2.5-flash");
+          setGeminiModel(d.geminiModel || "gemini-3.8-flash");
           setDefaultLanguage(d.defaultLanguage || "English");
           setDefaultVideoFormat(d.defaultVideoFormat || "SHORTS");
           setDefaultNiche(d.defaultNiche || "Tech & AI");
@@ -144,7 +144,8 @@ export default function SettingsPage() {
                   onChange={(e) => setGeminiModel(e.target.value)}
                   className="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-800 text-xs text-white focus:outline-none focus:border-sky-500"
                 >
-                  <option value="gemini-2.5-flash">Gemini 2.5 Flash (Recommended - Fastest & Best Limits)</option>
+                  <option value="gemini-3.8-flash">Gemini 3.8 Flash (Recommended - Fastest & Best Limits)</option>
+                  <option value="gemini-2.5-flash">Gemini 2.5 Flash</option>
                   <option value="gemini-2.5-pro">Gemini 2.5 Pro (Deep Storytelling & Long-form)</option>
                   <option value="gemini-3.5-flash">Gemini 3.5 Flash</option>
                   <option value="gemini-1.5-flash">Gemini 1.5 Flash</option>

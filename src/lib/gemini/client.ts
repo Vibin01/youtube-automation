@@ -23,7 +23,7 @@ export async function getGeminiClient() {
   }
 
   const client = new GoogleGenAI({ apiKey });
-  return { client, model: settings.geminiModel || "gemini-2.5-flash", hasKey: true };
+  return { client, model: settings.geminiModel || "gemini-3.8-flash", hasKey: true };
 }
 
 /**
@@ -83,7 +83,7 @@ Respond ONLY with a JSON object in this exact schema:
 
   try {
     const response = await client.models.generateContent({
-      model: model || "gemini-2.5-flash",
+      model: model || "gemini-3.8-flash",
       contents: prompt,
       config: {
         responseMimeType: "application/json",
@@ -197,7 +197,7 @@ Respond ONLY with a JSON object in this exact schema:
 
   try {
     const response = await client.models.generateContent({
-      model: model || "gemini-2.5-flash",
+      model: model || "gemini-3.8-flash",
       contents: prompt,
       config: {
         responseMimeType: "application/json",

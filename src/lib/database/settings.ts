@@ -25,7 +25,7 @@ export async function getAppSettings(): Promise<SystemSettings> {
       data: {
         id: "default",
         geminiApiKey: process.env.GEMINI_API_KEY || "",
-        geminiModel: process.env.GEMINI_MODEL || "gemini-2.5-flash",
+        geminiModel: process.env.GEMINI_MODEL || "gemini-3.8-flash",
         defaultLanguage: "English",
         defaultVideoFormat: "SHORTS",
         defaultTone: "Engaging",
@@ -43,7 +43,7 @@ export async function getAppSettings(): Promise<SystemSettings> {
   // Combine database settings with process.env if db value is empty
   return {
     geminiApiKey: settings.geminiApiKey || process.env.GEMINI_API_KEY || "",
-    geminiModel: settings.geminiModel || process.env.GEMINI_MODEL || "gemini-2.5-flash",
+    geminiModel: settings.geminiModel || process.env.GEMINI_MODEL || "gemini-3.8-flash",
     defaultLanguage: (settings.defaultLanguage as "English" | "Tamil") || "English",
     defaultVideoFormat: (settings.defaultVideoFormat as "SHORTS" | "LONG_FORM") || "SHORTS",
     defaultTone: settings.defaultTone || "Engaging",
