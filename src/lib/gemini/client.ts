@@ -84,35 +84,73 @@ Respond ONLY with a JSON object in this exact schema:
   ]
 }`;
 
-  try {
-    const response = await client.models.generateContent({
-      model: model || "gemini-3.8-flash",
-      contents: prompt,
-      config: {
-        responseMimeType: "application/json",
-      },
-    });
+  return executeWithGeminiModelFallback<GeneratedIdeaItem[]>(
+    client,
+    model || "gemini-3.8-flash",
+    prompt,
+    (parsed) => {
+      const v = GeneratedIdeasListSchema.safeParse(parsed);
+      return v.success ? { success: true, data: v.data.ideas } : { success: false, error: v.error };
+    },
+    () => generateFallbackIdeas(input),
+    "generateContentIdeas"
+  );
+}
 
-    const rawText = response.text?.trim() || "{}";
-    const parsed = JSON.parse(rawText);
-    const validated = GeneratedIdeasListSchema.safeParse(parsed);
+/**
+ * Resilient helper that attempts the preferred Gemini model, falls back to alternate models
+ * if 503 High Demand / 429 Quota occurs, and seamlessly switches to built-in comedy fallbacks
+ * without crashing cloud automation workflows.
+ */
+async function executeWithGeminiModelFallback<T>(
+  client: GoogleGenAI,
+  preferredModel: string,
+  prompt: string,
+  validator: (parsed: unknown) => { success: true; data: T } | { success: false; error: unknown },
+  fallbackFn: () => T,
+  operationName: string
+): Promise<T> {
+  const modelsToTry = Array.from(
+    new Set([preferredModel, "gemini-3.8-flash", "gemini-2.5-flash", "gemini-1.5-flash"].filter(Boolean))
+  );
 
-    if (validated.success) {
-      return validated.data.ideas;
+  let lastErrorMsg = "";
+
+  for (let i = 0; i < modelsToTry.length; i++) {
+    const candidate = modelsToTry[i];
+    try {
+      const response = await client.models.generateContent({
+        model: candidate,
+        contents: prompt,
+        config: {
+          responseMimeType: "application/json",
+        },
+      });
+
+      const rawText = response.text?.trim() || "{}";
+      const parsed = JSON.parse(rawText);
+      const validated = validator(parsed);
+      if (validated.success) {
+        return validated.data;
+      }
+      console.warn(`[AutoTube AI] ${operationName} schema mismatch with model '${candidate}'.`);
+    } catch (error: unknown) {
+      const err = error as { status?: number | string; message?: string };
+      const msg = err.message || String(error);
+      lastErrorMsg = msg;
+      console.warn(
+        `[AutoTube AI] ${operationName} with model '${candidate}' returned error (${msg.slice(0, 160)}). Trying backup option...`
+      );
+      if (msg.includes("503") || msg.includes("high demand") || msg.includes("429") || msg.includes("UNAVAILABLE")) {
+        await new Promise((resolve) => setTimeout(resolve, 2000));
+      }
     }
-
-    console.warn("Gemini response did not strictly match schema, falling back to sanitization:", validated.error);
-    return generateFallbackIdeas(input);
-  } catch (error: unknown) {
-    const err = error as { status?: number; message?: string };
-    console.error("Gemini API Error in generateContentIdeas:", err.message || error);
-    // If quota limit or API key error, provide fallback ideas and warn
-    if (err.status === 429 || err.message?.includes("quota") || err.message?.includes("API key")) {
-      console.warn("Using high quality fallback ideas due to API restriction:", err.message);
-      return generateFallbackIdeas(input);
-    }
-    throw new Error(`Failed to generate ideas: ${err.message || "Unknown error"}`);
   }
+
+  console.warn(
+    `[AutoTube AI] All Gemini AI models temporarily unavailable or experiencing high demand (${lastErrorMsg || "503 UNAVAILABLE"}). Seamlessly switching to built-in 16-character comedy fallback so video publishing is never interrupted!`
+  );
+  return fallbackFn();
 }
 
 /**
@@ -223,34 +261,17 @@ Respond ONLY with a JSON object in this exact schema:
   ]
 }`;
 
-  try {
-    const response = await client.models.generateContent({
-      model: model || "gemini-3.8-flash",
-      contents: prompt,
-      config: {
-        responseMimeType: "application/json",
-      },
-    });
-
-    const rawText = response.text?.trim() || "{}";
-    const parsed = JSON.parse(rawText);
-    const validated = GeneratedScriptSchema.safeParse(parsed);
-
-    if (validated.success) {
-      return validated.data;
-    }
-
-    console.warn("Script schema parse failed, falling back to structured fallback:", validated.error);
-    return generateFallbackScript(input);
-  } catch (error: unknown) {
-    const err = error as { status?: number; message?: string };
-    console.error("Gemini API Error in generateFullScript:", err.message || error);
-    if (err.status === 429 || err.message?.includes("quota") || err.message?.includes("API key")) {
-      console.warn("Using high quality fallback script due to API restriction:", err.message);
-      return generateFallbackScript(input);
-    }
-    throw new Error(`Failed to generate script: ${err.message || "Unknown error"}`);
-  }
+  return executeWithGeminiModelFallback<GeneratedScriptOutput>(
+    client,
+    model || "gemini-3.8-flash",
+    prompt,
+    (parsed) => {
+      const v = GeneratedScriptSchema.safeParse(parsed);
+      return v.success ? { success: true, data: v.data } : { success: false, error: v.error };
+    },
+    () => generateFallbackScript(input),
+    "generateFullScript"
+  );
 }
 
 /**
