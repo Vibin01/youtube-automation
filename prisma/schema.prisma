@@ -1,0 +1,223 @@
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model AppSettings {
+  id                 String   @id @default("default")
+  geminiApiKey       String?
+  geminiModel        String   @default("gemini-2.5-flash")
+  defaultLanguage    String   @default("English")
+  defaultVideoFormat String   @default("SHORTS")
+  defaultTone        String   @default("Engaging")
+  defaultNiche       String   @default("Tech & AI")
+  outputDir          String   @default("./output")
+  autoApproveScripts Boolean  @default(false)
+  autoRender         Boolean  @default(false)
+  autoPublish        Boolean  @default(false)
+  defaultVisibility  String   @default("private")
+  maxRetries         Int      @default(3)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+}
+
+model YouTubeChannel {
+  id                 String             @id @default(cuid())
+  channelId          String             @unique
+  title              String
+  customUrl          String?
+  description        String?
+  thumbnailUrl       String?
+  subscriberCount    Int                @default(0)
+  videoCount         Int                @default(0)
+  viewCount          BigInt             @default(0)
+  accessToken        String
+  refreshToken       String?
+  tokenExpiry        DateTime?
+  isConnected        Boolean            @default(true)
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+  publishingJobs     PublishingJob[]
+  analyticsSnapshots AnalyticsSnapshot[]
+}
+
+model ContentIdea {
+  id                String         @id @default(cuid())
+  title             String
+  hook              String?
+  description       String?
+  targetAudience    String?
+  niche             String         @default("General")
+  format            String         @default("SHORTS") // SHORTS or LONG_FORM
+  language          String         @default("English") // English or Tamil
+  category          String         @default("educational") // educational, entertainment, storytelling, kids
+  status            String         @default("GENERATED") // GENERATED, SAVED, APPROVED, REJECTED, USED
+  estimatedDuration Int            @default(60) // in seconds
+  tags              String?        // JSON string array
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+  videoProjects     VideoProject[]
+}
+
+model VideoProject {
+  id             String          @id @default(cuid())
+  title          String
+  description    String?
+  format         String          @default("SHORTS") // SHORTS (9:16) or LONG_FORM (16:9)
+  language       String          @default("English")
+  status         String          @default("DRAFT") // DRAFT, SCRIPTING, SCRIPT_READY, SCENES_READY, AUDIO_READY, RENDERING, RENDERED, READY_TO_PUBLISH, PUBLISHED, FAILED
+  contentIdeaId  String?
+  contentIdea    ContentIdea?    @relation(fields: [contentIdeaId], references: [id], onDelete: SetNull)
+  tags           String?         // JSON string
+  madeForKids    Boolean         @default(false)
+  humanApproved  Boolean         @default(false)
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  script         Script?
+  scenes         Scene[]
+  assets         GeneratedAsset[]
+  renders        VideoRender[]
+  publishingJobs PublishingJob[]
+  automationJobs AutomationJob[]
+}
+
+model Script {
+  id                String       @id @default(cuid())
+  videoProjectId    String       @unique
+  videoProject      VideoProject @relation(fields: [videoProjectId], references: [id], onDelete: Cascade)
+  title             String
+  hook              String?
+  body              String
+  callToAction      String?
+  description       String?
+  hashtags          String?      // JSON string array
+  thumbnailIdeas    String?      // JSON string array
+  targetDurationSec Int          @default(60)
+  isApproved        Boolean      @default(false)
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
+}
+
+model Scene {
+  id             String       @id @default(cuid())
+  videoProjectId String
+  videoProject   VideoProject @relation(fields: [videoProjectId], references: [id], onDelete: Cascade)
+  orderIndex     Int
+  narration      String
+  visualPrompt   String?
+  imagePath      String?
+  audioPath      String?
+  duration       Float        @default(5.0)
+  transition     String       @default("fade")
+  captionText    String?
+  status         String       @default("PENDING") // PENDING, READY, ERROR
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+}
+
+model GeneratedAsset {
+  id             String        @id @default(cuid())
+  videoProjectId String?
+  videoProject   VideoProject? @relation(fields: [videoProjectId], references: [id], onDelete: Cascade)
+  type           String        // IMAGE, AUDIO, SUBTITLE, THUMBNAIL, VIDEO_SEGMENT
+  filePath       String
+  mimeType       String?
+  fileSizeBytes  Int           @default(0)
+  metadata       String?       // JSON string
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+}
+
+model VideoRender {
+  id             String       @id @default(cuid())
+  videoProjectId String
+  videoProject   VideoProject @relation(fields: [videoProjectId], references: [id], onDelete: Cascade)
+  resolution     String       @default("1080x1920")
+  aspectRatio    String       @default("9:16")
+  durationSec    Float        @default(0)
+  fileSizeBytes  Int          @default(0)
+  outputPath     String?
+  thumbnailPath  String?
+  status         String       @default("QUEUED") // QUEUED, RENDERING, COMPLETED, FAILED
+  progress       Int          @default(0)
+  errorMessage   String?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+}
+
+model PublishingJob {
+  id                   String          @id @default(cuid())
+  videoProjectId       String
+  videoProject         VideoProject    @relation(fields: [videoProjectId], references: [id], onDelete: Cascade)
+  channelId            String?
+  channel              YouTubeChannel? @relation(fields: [channelId], references: [id], onDelete: SetNull)
+  title                String
+  description          String?
+  tags                 String?         // JSON string
+  privacyStatus        String          @default("private") // private, unlisted, public
+  scheduledPublishTime DateTime?
+  madeForKids          Boolean         @default(false)
+  youtubeVideoId       String?
+  youtubeVideoUrl      String?
+  status               String          @default("QUEUED") // QUEUED, UPLOADING, PUBLISHED, FAILED, SCHEDULED
+  errorMessage         String?
+  uploadProgress       Int             @default(0)
+  createdAt            DateTime        @default(now())
+  updatedAt            DateTime        @updatedAt
+}
+
+model AutomationJob {
+  id             String         @id @default(cuid())
+  workflowType   String         @default("FULL_PIPELINE") // FULL_PIPELINE, SCRIPT_GENERATION, VIDEO_RENDER, PUBLISH
+  status         String         @default("queued") // queued, processing, needs_review, approved, published, failed, cancelled
+  currentStep    String?
+  progress       Int            @default(0)
+  retryCount     Int            @default(0)
+  maxRetries     Int            @default(3)
+  videoProjectId String?
+  videoProject   VideoProject?  @relation(fields: [videoProjectId], references: [id], onDelete: SetNull)
+  payload        String?        // JSON string input data
+  errorMessage   String?
+  startedAt      DateTime?
+  completedAt    DateTime?
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+  steps          WorkflowStep[]
+}
+
+model WorkflowStep {
+  id              String        @id @default(cuid())
+  automationJobId String
+  automationJob   AutomationJob @relation(fields: [automationJobId], references: [id], onDelete: Cascade)
+  stepName        String
+  orderIndex      Int
+  status          String        @default("pending") // pending, running, completed, failed, skipped
+  resultData      String?       // JSON string
+  errorMessage    String?
+  startedAt       DateTime?
+  completedAt     DateTime?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+}
+
+model AnalyticsSnapshot {
+  id                 String          @id @default(cuid())
+  channelId          String?
+  channel            YouTubeChannel? @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  videoProjectId     String?
+  youtubeVideoId     String?
+  snapshotDate       DateTime        @default(now())
+  views              Int             @default(0)
+  watchTimeMinutes   Float           @default(0)
+  likes              Int             @default(0)
+  comments           Int             @default(0)
+  shares             Int             @default(0)
+  subscribersGained  Int             @default(0)
+  rawMetrics         String?         // JSON string
+  createdAt          DateTime        @default(now())
+  updatedAt          DateTime        @updatedAt
+}
