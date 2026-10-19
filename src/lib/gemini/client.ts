@@ -15,9 +15,10 @@ import {
  */
 export async function getGeminiClient() {
   const settings = await getAppSettings();
-  const apiKey = settings.geminiApiKey || process.env.GEMINI_API_KEY;
+  const rawKey = settings.geminiApiKey || process.env.GEMINI_API_KEY;
+  const apiKey = rawKey?.trim().replace(/^["']|["']$/g, "");
 
-  if (!apiKey || apiKey.trim() === "") {
+  if (!apiKey || apiKey === "") {
     return { client: null, model: settings.geminiModel, hasKey: false };
   }
 

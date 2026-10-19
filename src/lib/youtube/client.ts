@@ -9,9 +9,9 @@ const YOUTUBE_SCOPES = [
 ];
 
 export function getOAuthClient() {
-  const clientId = process.env.GOOGLE_CLIENT_ID;
-  const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
-  const redirectUri = process.env.GOOGLE_REDIRECT_URI || "http://localhost:3000/api/youtube/callback";
+  const clientId = process.env.GOOGLE_CLIENT_ID?.trim().replace(/^["']|["']$/g, "");
+  const clientSecret = process.env.GOOGLE_CLIENT_SECRET?.trim().replace(/^["']|["']$/g, "");
+  const redirectUri = (process.env.GOOGLE_REDIRECT_URI || "http://localhost:3000/api/youtube/callback")?.trim();
 
   if (!clientId || !clientSecret) {
     return null;
@@ -108,9 +108,9 @@ export async function getAuthenticatedYouTubeClient(channelDbId?: string) {
     : await prisma.youTubeChannel.findFirst({ where: { isConnected: true } });
 
   if (!channel) {
-    const envRefreshToken = process.env.YOUTUBE_REFRESH_TOKEN;
-    const envChannelId = process.env.YOUTUBE_CHANNEL_ID || "UCuMrJMyuch2dn4ldJejdiVQ";
-    const envChannelTitle = process.env.YOUTUBE_CHANNEL_TITLE || "Happy Kuttu Song";
+    const envRefreshToken = process.env.YOUTUBE_REFRESH_TOKEN?.trim().replace(/^["']|["']$/g, "");
+    const envChannelId = (process.env.YOUTUBE_CHANNEL_ID || "UCuMrJMyuch2dn4ldJejdiVQ")?.trim().replace(/^["']|["']$/g, "");
+    const envChannelTitle = (process.env.YOUTUBE_CHANNEL_TITLE || "Happy Kuttu Song")?.trim().replace(/^["']|["']$/g, "");
 
     if (envRefreshToken) {
       const oauth2Client = getOAuthClient();
