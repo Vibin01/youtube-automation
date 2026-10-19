@@ -18,7 +18,14 @@
         "avatar": "/characters/senthil_avatar.png",
         "threeD": "/characters/senthil_3d.png"
       },
-      "has3D": true
+      "has3D": true,
+      "hasTurnaround": false,
+      "angles": {
+        "sheet": null,
+        "front": "/characters/senthil.png",
+        "left": null,
+        "right": null
+      }
     },
     {
       "id": "govind",
@@ -32,7 +39,14 @@
         "avatar": "/characters/govind_avatar.png",
         "threeD": "/characters/govind_3d.png"
       },
-      "has3D": true
+      "has3D": true,
+      "hasTurnaround": false,
+      "angles": {
+        "sheet": null,
+        "front": "/characters/govind.png",
+        "left": null,
+        "right": null
+      }
     },
     {
       "id": "babu",
@@ -46,7 +60,14 @@
         "avatar": "/characters/babu_avatar.png",
         "threeD": "/characters/babu_3d.png"
       },
-      "has3D": true
+      "has3D": true,
+      "hasTurnaround": false,
+      "angles": {
+        "sheet": null,
+        "front": "/characters/babu.png",
+        "left": null,
+        "right": null
+      }
     },
     {
       "id": "ganesan",
@@ -60,7 +81,14 @@
         "avatar": "/characters/ganesan_avatar.png",
         "threeD": "/characters/ganesan_3d.png"
       },
-      "has3D": true
+      "has3D": true,
+      "hasTurnaround": false,
+      "angles": {
+        "sheet": null,
+        "front": "/characters/ganesan.png",
+        "left": null,
+        "right": null
+      }
     },
     {
       "id": "anand",
@@ -74,7 +102,14 @@
         "avatar": "/characters/anand_avatar.png",
         "threeD": "/characters/anand_3d.png"
       },
-      "has3D": true
+      "has3D": true,
+      "hasTurnaround": false,
+      "angles": {
+        "sheet": null,
+        "front": "/characters/anand.png",
+        "left": null,
+        "right": null
+      }
     },
     {
       "id": "mohan",
@@ -88,7 +123,14 @@
         "avatar": "/characters/mohan_avatar.png",
         "threeD": "/characters/mohan_3d.png"
       },
-      "has3D": true
+      "has3D": true,
+      "hasTurnaround": false,
+      "angles": {
+        "sheet": null,
+        "front": "/characters/mohan.png",
+        "left": null,
+        "right": null
+      }
     },
     {
       "id": "pandi",
@@ -102,7 +144,14 @@
         "avatar": "/characters/pandi_avatar.png",
         "threeD": "/characters/pandi_3d.png"
       },
-      "has3D": true
+      "has3D": true,
+      "hasTurnaround": false,
+      "angles": {
+        "sheet": null,
+        "front": "/characters/pandi.png",
+        "left": null,
+        "right": null
+      }
     },
     {
       "id": "aarumugam",
@@ -116,7 +165,14 @@
         "avatar": "/characters/aarumugam_avatar.png",
         "threeD": "/characters/aarumugam_3d.png"
       },
-      "has3D": true
+      "has3D": true,
+      "hasTurnaround": true,
+      "angles": {
+        "sheet": "/characters/sheets/aarumugam_sheet.png",
+        "front": "/characters/aarumugam_front.png",
+        "left": "/characters/aarumugam_left.png",
+        "right": "/characters/aarumugam_right.png"
+      }
     },
     {
       "id": "balu",
@@ -130,7 +186,14 @@
         "avatar": "/characters/balu_avatar.png",
         "threeD": "/characters/balu_3d.png"
       },
-      "has3D": true
+      "has3D": true,
+      "hasTurnaround": false,
+      "angles": {
+        "sheet": null,
+        "front": "/characters/balu.png",
+        "left": null,
+        "right": null
+      }
     },
     {
       "id": "sodamani",
@@ -144,7 +207,14 @@
         "avatar": "/characters/sodamani_avatar.png",
         "threeD": "/characters/sodamani_3d.png"
       },
-      "has3D": true
+      "has3D": true,
+      "hasTurnaround": false,
+      "angles": {
+        "sheet": null,
+        "front": "/characters/sodamani.png",
+        "left": null,
+        "right": null
+      }
     },
     {
       "id": "sundaram",
@@ -158,7 +228,14 @@
         "avatar": "/characters/sundaram_avatar.png",
         "threeD": "/characters/sundaram_3d.png"
       },
-      "has3D": true
+      "has3D": true,
+      "hasTurnaround": false,
+      "angles": {
+        "sheet": null,
+        "front": "/characters/sundaram.png",
+        "left": null,
+        "right": null
+      }
     },
     {
       "id": "thangarasu",
@@ -172,7 +249,14 @@
         "avatar": "/characters/thangarasu_avatar.png",
         "threeD": "/characters/thangarasu_3d.png"
       },
-      "has3D": true
+      "has3D": true,
+      "hasTurnaround": false,
+      "angles": {
+        "sheet": null,
+        "front": "/characters/thangarasu.png",
+        "left": null,
+        "right": null
+      }
     },
     {
       "id": "dhandapani",
@@ -186,7 +270,14 @@
         "avatar": "/characters/dhandapani_avatar.png",
         "threeD": "/characters/dhandapani_3d.png"
       },
-      "has3D": true
+      "has3D": true,
+      "hasTurnaround": false,
+      "angles": {
+        "sheet": null,
+        "front": "/characters/dhandapani.png",
+        "left": null,
+        "right": null
+      }
     },
     {
       "id": "soundarya",
@@ -200,7 +291,14 @@
         "avatar": "/characters/soundarya_avatar.png",
         "threeD": "/characters/soundarya_3d.png"
       },
-      "has3D": true
+      "has3D": true,
+      "hasTurnaround": false,
+      "angles": {
+        "sheet": null,
+        "front": "/characters/soundarya.png",
+        "left": null,
+        "right": null
+      }
     },
     {
       "id": "kokila",
@@ -214,7 +312,14 @@
         "avatar": "/characters/kokila_avatar.png",
         "threeD": "/characters/kokila_3d.png"
       },
-      "has3D": true
+      "has3D": true,
+      "hasTurnaround": false,
+      "angles": {
+        "sheet": null,
+        "front": "/characters/kokila.png",
+        "left": null,
+        "right": null
+      }
     },
     {
       "id": "padmini",
@@ -228,7 +333,14 @@
         "avatar": "/characters/padmini_avatar.png",
         "threeD": "/characters/padmini_3d.png"
       },
-      "has3D": true
+      "has3D": true,
+      "hasTurnaround": false,
+      "angles": {
+        "sheet": null,
+        "front": "/characters/padmini.png",
+        "left": null,
+        "right": null
+      }
     }
   ]
 }

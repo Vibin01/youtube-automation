@@ -14,7 +14,12 @@ import {
   ExternalLink,
   Flame,
   Search,
+  Copy,
+  Check,
+  RotateCcw,
+  Eye,
 } from "lucide-react";
+import { TURNAROUND_PROMPTS } from "@/lib/characters/modelSheetPrompts";
 
 interface CharacterData {
   id: string;
@@ -225,6 +230,8 @@ const CHARACTERS: CharacterData[] = [
 
 export default function CharactersPage() {
   const [selectedChar, setSelectedChar] = useState<CharacterData | null>(null);
+  const [angle, setAngle] = useState<"front" | "left" | "right" | "sheet">("front");
+  const [copiedPrompt, setCopiedPrompt] = useState(false);
   const [search, setSearch] = useState("");
   const [speakingId, setSpeakingId] = useState<string | null>(null);
 
@@ -471,37 +478,123 @@ export default function CharactersPage() {
         })}
       </div>
 
-      {/* Detail Modal */}
+      {/* Detail Modal with 360° Multi-Angle Turnaround Viewer */}
       {selectedChar && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
-          <div className="relative w-full max-w-2xl rounded-3xl bg-slate-900 border border-slate-800 p-6 md:p-8 space-y-6 shadow-2xl">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md overflow-y-auto">
+          <div className="relative w-full max-w-4xl rounded-3xl bg-slate-900 border border-slate-800 p-6 md:p-8 space-y-6 shadow-2xl my-8">
             <button
-              onClick={() => setSelectedChar(null)}
-              className="absolute top-5 right-5 text-slate-400 hover:text-white text-lg font-bold w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center"
+              onClick={() => {
+                setSelectedChar(null);
+                setAngle("front");
+                setCopiedPrompt(false);
+              }}
+              className="absolute top-5 right-5 text-slate-400 hover:text-white text-lg font-bold w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center transition"
             >
               ✕
             </button>
 
-            <div className="flex flex-col md:flex-row gap-6">
-              <div className="w-full md:w-56 aspect-square rounded-2xl overflow-hidden border-2 border-amber-500/40 shadow-xl flex-shrink-0">
-                <img
-                  src={`/characters/${selectedChar.id}.png`}
-                  alt={selectedChar.name}
-                  className="w-full h-full object-cover object-top"
-                />
+            {/* Header info */}
+            <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 border-b border-slate-800 pb-4">
+              <div>
+                <div className="flex items-center gap-2 text-amber-400 text-xs font-bold uppercase tracking-wider mb-1">
+                  <span>{selectedChar.emoji}</span>
+                  <span>{selectedChar.nickname}</span>
+                </div>
+                <h2 className="text-3xl font-black text-white flex items-center gap-3">
+                  <span>{selectedChar.name}</span>
+                  <span className="text-xs px-2.5 py-0.5 rounded-full bg-amber-400/10 text-amber-300 border border-amber-400/20 font-semibold">
+                    Turnaround Model Sheet
+                  </span>
+                </h2>
+                <p className="text-xs text-slate-400">{selectedChar.role}</p>
               </div>
 
-              <div className="space-y-4 flex-1">
-                <div>
-                  <div className="flex items-center gap-2 text-amber-400 text-xs font-bold uppercase tracking-wider mb-1">
-                    <span>{selectedChar.emoji}</span>
-                    <span>{selectedChar.nickname}</span>
-                  </div>
-                  <h2 className="text-2xl font-black text-white">{selectedChar.name}</h2>
-                  <p className="text-xs text-slate-400">{selectedChar.role}</p>
-                </div>
+              {/* Angle View Selector Pill */}
+              <div className="flex items-center gap-1 p-1 rounded-xl bg-slate-950 border border-slate-800">
+                <button
+                  onClick={() => setAngle("front")}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 ${
+                    angle === "front"
+                      ? "bg-amber-400 text-slate-950 shadow"
+                      : "text-slate-400 hover:text-white"
+                  }`}
+                >
+                  <Eye className="w-3.5 h-3.5" />
+                  <span>Front</span>
+                </button>
+                <button
+                  onClick={() => setAngle("left")}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 ${
+                    angle === "left"
+                      ? "bg-amber-400 text-slate-950 shadow"
+                      : "text-slate-400 hover:text-white"
+                  }`}
+                >
+                  <span>👈 3/4 Left</span>
+                </button>
+                <button
+                  onClick={() => setAngle("right")}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 ${
+                    angle === "right"
+                      ? "bg-amber-400 text-slate-950 shadow"
+                      : "text-slate-400 hover:text-white"
+                  }`}
+                >
+                  <span>3/4 Right 👉</span>
+                </button>
+                <button
+                  onClick={() => setAngle("sheet")}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 ${
+                    angle === "sheet"
+                      ? "bg-amber-400 text-slate-950 shadow"
+                      : "text-slate-400 hover:text-white"
+                  }`}
+                >
+                  <RotateCcw className="w-3.5 h-3.5" />
+                  <span>Full Sheet</span>
+                </button>
+              </div>
+            </div>
 
-                <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-between">
+            {/* Viewer Stage */}
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-center">
+              {/* Image Preview Box */}
+              <div className="lg:col-span-6 flex flex-col items-center justify-center p-4 rounded-2xl bg-slate-950/80 border border-slate-800">
+                <div className="relative w-full max-h-[380px] flex items-center justify-center overflow-hidden rounded-xl">
+                  <img
+                    key={`${selectedChar.id}-${angle}`}
+                    src={
+                      angle === "sheet"
+                        ? `/characters/sheets/${selectedChar.id}_sheet.png`
+                        : `/characters/${selectedChar.id}_${angle}.png`
+                    }
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).src = `/characters/${selectedChar.id}.png`;
+                    }}
+                    alt={`${selectedChar.name} - ${angle} view`}
+                    className="max-h-[360px] w-auto object-contain rounded-lg shadow-xl"
+                  />
+                </div>
+                <div className="mt-3 flex items-center gap-2 text-[11px] text-slate-400 font-medium">
+                  {selectedChar.id === "aarumugam" && (
+                    <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                  )}
+                  <span>
+                    {angle === "sheet"
+                      ? "Full 3-Angle Turnaround Model Sheet"
+                      : `${angle.toUpperCase()} Pose Angle View`}
+                  </span>
+                  {selectedChar.id === "aarumugam" && (
+                    <span className="text-[10px] px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 font-bold border border-emerald-500/30">
+                      Turnaround Ready
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              {/* Bio & Actions */}
+              <div className="lg:col-span-6 space-y-4">
+                <div className="p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-between">
                   <div className="space-y-0.5">
                     <span className="text-[10px] uppercase font-bold text-amber-300">Signature Catchphrase</span>
                     <p className="text-sm font-bold text-white">"{selectedChar.catchphrase}"</p>
@@ -519,15 +612,60 @@ export default function CharactersPage() {
                   <p className="text-xs text-slate-400 leading-relaxed">{selectedChar.personality}</p>
                 </div>
 
-                <div className="flex items-center gap-3 pt-2">
+                {/* Gemini Turnaround Prompt Box */}
+                <div className="p-3.5 rounded-xl bg-purple-950/40 border border-purple-500/30 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] uppercase font-bold text-purple-300 flex items-center gap-1.5">
+                      <Sparkles className="w-3.5 h-3.5 text-purple-400" />
+                      <span>Gemini Multi-Angle Model Sheet Prompt</span>
+                    </span>
+                    <button
+                      onClick={() => {
+                        const promptText =
+                          TURNAROUND_PROMPTS[selectedChar.id] ||
+                          `A 3D Disney Pixar animated character turnaround model sheet. Bold 3D cartoon lettering centered at top: '${selectedChar.name.toUpperCase()}'. Three full-body poses side-by-side on a neutral light grey studio background with soft floor contact shadows. Character: ${selectedChar.name}, ${selectedChar.role}. ${selectedChar.personality}. Left pose: 3/4 front view; Center pose: Frontal confident stance; Right pose: 3/4 side profile view. High detail Pixar 3D animated character sheet.`;
+                        navigator.clipboard.writeText(promptText);
+                        setCopiedPrompt(true);
+                        setTimeout(() => setCopiedPrompt(false), 2000);
+                      }}
+                      className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-purple-600 hover:bg-purple-500 text-white text-[11px] font-bold transition shadow"
+                    >
+                      {copiedPrompt ? <Check className="w-3 h-3 text-emerald-300" /> : <Copy className="w-3 h-3" />}
+                      <span>{copiedPrompt ? "Copied!" : "Copy Prompt"}</span>
+                    </button>
+                  </div>
+                  <p className="text-[11px] text-purple-200/90 font-mono bg-purple-950/60 p-2.5 rounded-lg line-clamp-3 leading-relaxed border border-purple-500/20">
+                    {TURNAROUND_PROMPTS[selectedChar.id] ||
+                      `A 3D Disney Pixar animated character turnaround model sheet. Bold 3D cartoon lettering centered at top: '${selectedChar.name.toUpperCase()}'. Three full-body poses side-by-side on a neutral light grey studio background...`}
+                  </p>
+                  <div className="flex items-center justify-between text-[10px] text-purple-300/70 pt-0.5">
+                    <span>💡 Calibrated to match the Alappara Aarumugam sheet layout</span>
+                    <a
+                      href="https://gemini.google.com/"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-purple-300 hover:text-white underline flex items-center gap-1"
+                    >
+                      <span>Open Gemini</span>
+                      <ExternalLink className="w-2.5 h-2.5" />
+                    </a>
+                  </div>
+                </div>
+
+                {/* Download links */}
+                <div className="flex flex-wrap items-center gap-2 pt-2">
                   <a
-                    href={`/characters/${selectedChar.id}.png`}
+                    href={
+                      angle === "sheet"
+                        ? `/characters/sheets/${selectedChar.id}_sheet.png`
+                        : `/characters/${selectedChar.id}_${angle}.png`
+                    }
                     target="_blank"
                     rel="noreferrer"
                     className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-amber-400 text-slate-950 font-bold text-xs hover:bg-amber-300 transition"
                   >
                     <ExternalLink className="w-3.5 h-3.5" />
-                    <span>Open Full 3D Asset</span>
+                    <span>Open High-Res</span>
                   </a>
                   <a
                     href={`/characters/${selectedChar.id}.png`}
