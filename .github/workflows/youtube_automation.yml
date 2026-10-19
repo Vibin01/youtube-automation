@@ -48,6 +48,8 @@ jobs:
         run: npm ci
 
       - name: 🗄️ Initialize SQLite Database
+        env:
+          DATABASE_URL: "file:./dev.db"
         run: npx prisma db push
 
       - name: 🚀 Run Autonomous YouTube Publisher
