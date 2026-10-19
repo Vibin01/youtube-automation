@@ -185,6 +185,42 @@ const CHARACTERS: CharacterData[] = [
     badgeColor: "from-indigo-600 to-blue-800",
     tags: ["500 Crore Deals", "Zero Rupee Wallet", "Tea Loan King"],
   },
+  {
+    id: "soundarya",
+    name: "Serial Soundarya",
+    nickname: "Mega-Serial Twist Queen",
+    role: "Drama & mega-serial queen (age 28)",
+    catchphrase: "Idhu theriyama pochey! Mega twist aayiruchey!",
+    personality:
+      "High-voltage mega-serial addict. Treats every basic street conversation like an 800-episode soap opera climax. Turns three times in dramatic slow motion: Dhaam Dheem Dhaam!",
+    emoji: "📺",
+    badgeColor: "from-purple-600 to-fuchsia-700",
+    tags: ["Mega Serial", "Dramatic Twist", "TV Remote Wand"],
+  },
+  {
+    id: "kokila",
+    name: "Kolaaru Kokila",
+    nickname: "Gossip Confusion Queen",
+    role: "Town confusion & live gossip broadcaster (age 34)",
+    catchphrase: "Ketta shock aayiruveenga... naan sollavaa?!",
+    personality:
+      "The undisputed queen of confusion and rumors. Hears half a word, invents the remaining 95%, and broadcasts it across town in two minutes with her massive handbag.",
+    emoji: "📻",
+    badgeColor: "from-lime-500 to-green-700",
+    tags: ["Live Gossip", "Confusion Queen", "Mega Handbag"],
+  },
+  {
+    id: "padmini",
+    name: "Pottu Padmini",
+    nickname: "Area Boss Akka",
+    role: "Undisputed street leader (age 40)",
+    catchphrase: "Enna aaluku aalu alappara panreenga? Ozhunga nillu!",
+    personality:
+      "The undisputed boss of the neighborhood. Wears a giant maroon pottu (bindi) that commands instant obedience and respect. Solves every street dispute with a single glare.",
+    emoji: "👑",
+    badgeColor: "from-amber-600 to-red-700",
+    tags: ["Area Boss Akka", "Giant Pottu", "Commanding Glare"],
+  },
 ];
 
 export default function CharactersPage() {
@@ -227,14 +263,14 @@ export default function CharactersPage() {
           <div className="space-y-3">
             <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs font-semibold tracking-wide">
               <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-              <span>OFFICIAL 3D ANIMATED CAST • 13 CHARACTERS</span>
+              <span>OFFICIAL 3D ANIMATED CAST • 16 CHARACTERS</span>
             </div>
             <h1 className="text-3xl md:text-5xl font-extrabold tracking-tight text-white flex items-center gap-3">
               <span>Happy Kuttu Song</span>
               <span className="text-amber-400">Cast</span>
             </h1>
             <p className="text-slate-300 max-w-2xl text-sm md:text-base leading-relaxed">
-              Every video features strictly these 13 permanent 3D Disney/Pixar-style comedy characters. 
+              Every video features strictly these 16 permanent comedy characters. 
               Zero 2D cartoon figures. Fully integrated with automated scripts, speech synthesis, and high-energy Tamil Kuthu dance breaks!
             </p>
           </div>
@@ -267,8 +303,8 @@ export default function CharactersPage() {
               <Users className="w-5 h-5" />
             </div>
             <div>
-              <div className="text-xl font-bold text-white">13 Characters</div>
-              <div className="text-xs text-slate-400">100% 3D Pixar Style</div>
+              <div className="text-xl font-bold text-white">16 Characters</div>
+              <div className="text-xs text-slate-400">13 Kings &amp; 3 Queens</div>
             </div>
           </div>
 
@@ -318,7 +354,7 @@ export default function CharactersPage() {
           />
         </div>
         <div className="text-xs text-slate-400">
-          Showing <span className="font-bold text-amber-400">{filtered.length}</span> of 13 official characters
+          Showing <span className="font-bold text-amber-400">{filtered.length}</span> of 16 official characters
         </div>
       </div>
 

@@ -2,7 +2,7 @@
   "channel": "Happy Kuttu Song",
   "version": "3.0.0",
   "style": "3D Disney Pixar / DreamWorks Animated Style",
-  "totalCharacters": 13,
+  "totalCharacters": 16,
   "poster": "/characters/cast_poster.png",
   "posterHd": "/characters/cast_poster_hd.png",
   "characters": [
@@ -185,6 +185,48 @@
         "default": "/characters/dhandapani.png",
         "avatar": "/characters/dhandapani_avatar.png",
         "threeD": "/characters/dhandapani_3d.png"
+      },
+      "has3D": true
+    },
+    {
+      "id": "soundarya",
+      "name": "Serial Soundarya",
+      "nickname": "Mega-Serial Twist Queen",
+      "role": "Drama & mega-serial queen (age 28)",
+      "catchphrase": "Idhu theriyama pochey! Mega twist aayiruchey!",
+      "emoji": "📺",
+      "files": {
+        "default": "/characters/soundarya.png",
+        "avatar": "/characters/soundarya_avatar.png",
+        "threeD": "/characters/soundarya_3d.png"
+      },
+      "has3D": true
+    },
+    {
+      "id": "kokila",
+      "name": "Kolaaru Kokila",
+      "nickname": "Gossip Confusion Queen",
+      "role": "Town confusion & live gossip broadcaster (age 34)",
+      "catchphrase": "Ketta shock aayiruveenga... naan sollavaa?!",
+      "emoji": "📻",
+      "files": {
+        "default": "/characters/kokila.png",
+        "avatar": "/characters/kokila_avatar.png",
+        "threeD": "/characters/kokila_3d.png"
+      },
+      "has3D": true
+    },
+    {
+      "id": "padmini",
+      "name": "Pottu Padmini",
+      "nickname": "Area Boss Akka",
+      "role": "Undisputed street leader (age 40)",
+      "catchphrase": "Enna aaluku aalu alappara panreenga? Ozhunga nillu!",
+      "emoji": "👑",
+      "files": {
+        "default": "/characters/padmini.png",
+        "avatar": "/characters/padmini_avatar.png",
+        "threeD": "/characters/padmini_3d.png"
       },
       "has3D": true
     }

@@ -274,6 +274,60 @@ export const CAST: CharacterDefinition[] = [
     emoji: "💸",
     ttsVoice: "ta-IN-ValluvarNeural",
   },
+  {
+    id: "soundarya",
+    name: "Serial Soundarya",
+    nameTts: "Serial Soundarya",
+    nickname: "Mega-Serial Twist Queen",
+    role: "Drama & mega-serial queen (age 28)",
+    personality:
+      "High-voltage mega-serial addict. Treats every basic street conversation like an 800-episode soap opera climax. If someone drops a tea tumbler, she gasps in dramatic slow motion with imaginary lightning strikes and turns three times: Dhaam Dheem Dhaam!",
+    catchphrase: "Idhu theriyama pochey! Mega twist aayiruchey!",
+    skinColor: "#d49a60",
+    shirtColor: "#9333ea",
+    hairColor: "#18181b",
+    bottomColor: "#581c87",
+    shoeColor: "#facc15",
+    accessory: "Purple silk saree, gold jhumkas, TV remote held like a magic wand, dramatic soap opera shock expressions",
+    emoji: "📺",
+    ttsVoice: "ta-IN-PallaviNeural",
+  },
+  {
+    id: "kokila",
+    name: "Kolaaru Kokila",
+    nameTts: "Kolaaru Kokila",
+    nickname: "Gossip Confusion Queen",
+    role: "Town confusion & live gossip broadcaster (age 34)",
+    personality:
+      "The undisputed queen of confusion and rumors. Never listens to a complete sentence — hears half a word, invents the remaining 95%, and broadcasts it across town in two minutes with her massive handbag. Partners with or competes against Soda Mani.",
+    catchphrase: "Ketta shock aayiruveenga... naan sollavaa?!",
+    skinColor: "#cda068",
+    shirtColor: "#16a34a",
+    hairColor: "#1f2937",
+    bottomColor: "#14532d",
+    shoeColor: "#dc2626",
+    accessory: "Bright parrot-green saree, oversized sunglasses perched on head, enormous gossip handbag, knowing gossiping smirk",
+    emoji: "📻",
+    ttsVoice: "ta-IN-PallaviNeural",
+  },
+  {
+    id: "padmini",
+    name: "Pottu Padmini",
+    nameTts: "Pottu Padmini",
+    nickname: "Area Boss Akka",
+    role: "Undisputed street leader (age 40)",
+    personality:
+      "The undisputed boss of the neighborhood. Wears a giant maroon pottu (bindi) that commands instant obedience and respect. Even tough guy Gethu Ganesan stands with folded hands and Bullet Balu stops trembling when she speaks. Solves every street dispute with a single glare.",
+    catchphrase: "Enna aaluku aalu alappara panreenga? Ozhunga nillu!",
+    skinColor: "#c88242",
+    shirtColor: "#f59e0b",
+    hairColor: "#18181b",
+    bottomColor: "#991b1b",
+    shoeColor: "#b45309",
+    accessory: "Regal yellow/red Kanchipuram silk saree, giant maroon round bindi, folded hands with gold bangles, jasmine flowers wreath",
+    emoji: "👑",
+    ttsVoice: "ta-IN-PallaviNeural",
+  },
 ];
 
 /** Get a character by ID */
@@ -297,7 +351,7 @@ export function getCastNamesForPrompt(): string {
 }
 
 /**
- * Original Kuthu dance song for the weekly dance break (13 Official 3D Characters).
+ * Original Kuthu dance song for the weekly dance break (16 Official Characters).
  */
 export const KUTHU_DANCE_SONG = {
   title: "Vera Level Kuthu!",
@@ -316,6 +370,9 @@ export const KUTHU_DANCE_SONG = {
     "Sombu Sundaram dances lying down to save maximum energy",
     "Tension Thangarasu panics clutching his head that the floor is collapsing",
     "Dowlath Dhandapani dances royal swagger while borrowing 5 rupees for chai",
+    "Serial Soundarya gasps at the dance steps like a mega-serial dramatic twist",
+    "Kolaaru Kokila broadcasts live gossip updates while doing fast kuthu steps",
+    "Pottu Padmini commands the entire dance floor with full area boss swagger",
   ],
   lyrics: [
     "Scene Senthil slow motion-la vandhan!",
@@ -331,7 +388,10 @@ export const KUTHU_DANCE_SONG = {
     "Sombu Sundaram rest edukitte aadaan!",
     "Tension Thangarasu panic aagi thullinaan!",
     "Dowlath Dhandapani tea kaasu kettan!",
-    "Pathu moonu perum serntha vera level kuthu aaduvoam!",
+    "Serial Soundarya mega twist-la aadinaa!",
+    "Kolaaru Kokila breaking news-oda thullinaa!",
+    "Pottu Padmini boss entry pottu aadinaa!",
+    "Padhinaaru perum serntha vera level kuthu aaduvoam!",
   ],
 };
 

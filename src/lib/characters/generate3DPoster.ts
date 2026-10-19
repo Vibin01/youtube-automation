@@ -24,32 +24,26 @@ export async function generate3DCastPoster(): Promise<string> {
 
   console.log(`🎨 Generating 3D Master Cast Poster (${width}x${height})...`);
 
-  // Row 1: 7 characters, Row 2: 6 characters
-  const row1 = CAST.slice(0, 7);
-  const row2 = CAST.slice(7, 13);
+  // Row 1: 8 characters, Row 2: 8 characters
+  const row1 = CAST.slice(0, 8);
+  const row2 = CAST.slice(8, 16);
 
-  const cardWidth = 320;
+  const cardWidth = 280;
   const cardHeight = 440;
 
-  // Calculate positions
-  // Row 1 spacing
-  const gap1 = 30;
-  const totalW1 = 7 * cardWidth + 6 * gap1; // 2240 + 180 = 2420
-  const startX1 = (width - totalW1) / 2;
-  const startY1 = 260;
-
-  // Row 2 spacing
-  const gap2 = 48;
-  const totalW2 = 6 * cardWidth + 5 * gap2; // 1920 + 240 = 2160
-  const startX2 = (width - totalW2) / 2;
-  const startY2 = 750;
+  // Calculate positions (8 columns per row)
+  const gap = 24;
+  const totalW = 8 * cardWidth + 7 * gap; // 2240 + 168 = 2408
+  const startX = Math.round((width - totalW) / 2);
+  const startY1 = 250;
+  const startY2 = 740;
 
   const compositeOperations: Array<{ input: Buffer | string; top: number; left: number }> = [];
 
   // Generate character card images and composite them
   const layout = [
-    ...row1.map((c, i) => ({ c, x: Math.round(startX1 + i * (cardWidth + gap1)), y: startY1 })),
-    ...row2.map((c, i) => ({ c, x: Math.round(startX2 + i * (cardWidth + gap2)), y: startY2 })),
+    ...row1.map((c, i) => ({ c, x: Math.round(startX + i * (cardWidth + gap)), y: startY1 })),
+    ...row2.map((c, i) => ({ c, x: Math.round(startX + i * (cardWidth + gap)), y: startY2 })),
   ];
 
   for (const item of layout) {
@@ -170,7 +164,7 @@ export async function generate3DCastPoster(): Promise<string> {
     </g>
 
     <text x="${width / 2}" y="195" font-family="'Segoe UI', Roboto, sans-serif" font-size="28" font-weight="900" fill="url(#goldGradient)" text-anchor="middle" letter-spacing="2">
-      ⚡ OFFICIAL 13 3D ANIMATED COMEDY CHARACTERS ⚡
+      ⚡ OFFICIAL 16 3D ANIMATED COMEDY CHARACTERS ⚡
     </text>
     <text x="${width / 2}" y="230" font-family="'Segoe UI', Roboto, sans-serif" font-size="16" font-weight="600" fill="#cbd5e1" text-anchor="middle" letter-spacing="1">
       Permanent Pixar/DreamWorks Style Roster • Tamil Street Comedy &amp; High-Energy Kuthu Dance
