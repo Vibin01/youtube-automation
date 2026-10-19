@@ -22,6 +22,9 @@ jobs:
   publish-video:
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    env:
+      DATABASE_URL: "file:./dev.db"
+      OUTPUT_DIR: "./output"
 
     steps:
       - name: 📥 Check out repository
@@ -50,7 +53,9 @@ jobs:
       - name: 🗄️ Initialize SQLite Database
         env:
           DATABASE_URL: "file:./dev.db"
-        run: npx prisma db push
+        run: |
+          echo 'DATABASE_URL="file:./dev.db"' > .env
+          npx prisma db push --accept-data-loss
 
       - name: 🚀 Run Autonomous YouTube Publisher
         env:
