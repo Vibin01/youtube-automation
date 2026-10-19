@@ -1,0 +1,192 @@
+{
+  "channel": "Happy Kuttu Song",
+  "version": "3.0.0",
+  "style": "3D Disney Pixar / DreamWorks Animated Style",
+  "totalCharacters": 13,
+  "poster": "/characters/cast_poster.png",
+  "posterHd": "/characters/cast_poster_hd.png",
+  "characters": [
+    {
+      "id": "senthil",
+      "name": "Scene Senthil",
+      "nickname": "Mass Hero",
+      "role": "Cinematic mass hero (age 28)",
+      "catchphrase": "Entry vera level!",
+      "emoji": "🎬",
+      "files": {
+        "default": "/characters/senthil.png",
+        "avatar": "/characters/senthil_avatar.png",
+        "threeD": "/characters/senthil_3d.png"
+      },
+      "has3D": true
+    },
+    {
+      "id": "govind",
+      "name": "Google Govind",
+      "nickname": "WhatsApp PhD",
+      "role": "Self-proclaimed expert (age 32)",
+      "catchphrase": "WhatsApp-la padichen bro, 100% accurate!",
+      "emoji": "📱",
+      "files": {
+        "default": "/characters/govind.png",
+        "avatar": "/characters/govind_avatar.png",
+        "threeD": "/characters/govind_3d.png"
+      },
+      "has3D": true
+    },
+    {
+      "id": "babu",
+      "name": "Battery Babu",
+      "nickname": "10 AM Dead Battery",
+      "role": "Human who crashes at 10 AM (age 25)",
+      "catchphrase": "Morning-la naan Superman! 10 AM-ku game over!",
+      "emoji": "⚡",
+      "files": {
+        "default": "/characters/babu.png",
+        "avatar": "/characters/babu_avatar.png",
+        "threeD": "/characters/babu_3d.png"
+      },
+      "has3D": true
+    },
+    {
+      "id": "ganesan",
+      "name": "Gethu Ganesan",
+      "nickname": "Amma's Kitten",
+      "role": "Tough guy who melts at mom's voice (age 26)",
+      "catchphrase": "Naan bayapadamatein! ... Coming Amma!",
+      "emoji": "🦁",
+      "files": {
+        "default": "/characters/ganesan.png",
+        "avatar": "/characters/ganesan_avatar.png",
+        "threeD": "/characters/ganesan_3d.png"
+      },
+      "has3D": true
+    },
+    {
+      "id": "anand",
+      "name": "Aap-adicha Anand",
+      "nickname": "Master Plan Fail",
+      "role": "Elaborate plan backfire expert (age 29)",
+      "catchphrase": "Oru plan iruku... indha maari backfire aagaathu!",
+      "emoji": "📋",
+      "files": {
+        "default": "/characters/anand.png",
+        "avatar": "/characters/anand_avatar.png",
+        "threeD": "/characters/anand_3d.png"
+      },
+      "has3D": true
+    },
+    {
+      "id": "mohan",
+      "name": "Mic Mohan",
+      "nickname": "Loud Speaker",
+      "role": "The man with no volume control (age 27)",
+      "catchphrase": "Psst! SECRET KONJAM KELAPPA!",
+      "emoji": "📢",
+      "files": {
+        "default": "/characters/mohan.png",
+        "avatar": "/characters/mohan_avatar.png",
+        "threeD": "/characters/mohan_3d.png"
+      },
+      "has3D": true
+    },
+    {
+      "id": "pandi",
+      "name": "Parotta Pandi",
+      "nickname": "Salna Philosopher",
+      "role": "Food philosopher (age 31)",
+      "catchphrase": "Parotta + salna iruntha... naan ready!",
+      "emoji": "🥙",
+      "files": {
+        "default": "/characters/pandi.png",
+        "avatar": "/characters/pandi_avatar.png",
+        "threeD": "/characters/pandi_3d.png"
+      },
+      "has3D": true
+    },
+    {
+      "id": "aarumugam",
+      "name": "Alappara Aarumugam",
+      "nickname": "International Drama King",
+      "role": "Resident drama king & fake international boss (age 30)",
+      "catchphrase": "International standard bro, ungalukku puriyaathu!",
+      "emoji": "👑",
+      "files": {
+        "default": "/characters/aarumugam.png",
+        "avatar": "/characters/aarumugam_avatar.png",
+        "threeD": "/characters/aarumugam_3d.png"
+      },
+      "has3D": true
+    },
+    {
+      "id": "balu",
+      "name": "Bullet Balu",
+      "nickname": "Tree Climber Hero",
+      "role": "Mass action hero until a dog barks (age 27)",
+      "catchphrase": "Mass hero-ku bayam illa... aiyo naai varudhu!",
+      "emoji": "🕶️",
+      "files": {
+        "default": "/characters/balu.png",
+        "avatar": "/characters/balu_avatar.png",
+        "threeD": "/characters/balu_3d.png"
+      },
+      "has3D": true
+    },
+    {
+      "id": "sodamani",
+      "name": "Soda Mani",
+      "nickname": "Town Gossip 24x7",
+      "role": "Tea stall owner & town gossip network (age 42)",
+      "catchphrase": "Tea kudi... hot breaking news solren!",
+      "emoji": "👓",
+      "files": {
+        "default": "/characters/sodamani.png",
+        "avatar": "/characters/sodamani_avatar.png",
+        "threeD": "/characters/sodamani_3d.png"
+      },
+      "has3D": true
+    },
+    {
+      "id": "sundaram",
+      "name": "Sombu Sundaram",
+      "nickname": "Laziness Legend",
+      "role": "Champion of laziness (age 33)",
+      "catchphrase": "Thanni kudika 10 adi nadakanuma? Naliku paathukalam!",
+      "emoji": "🦥",
+      "files": {
+        "default": "/characters/sundaram.png",
+        "avatar": "/characters/sundaram_avatar.png",
+        "threeD": "/characters/sundaram_3d.png"
+      },
+      "has3D": true
+    },
+    {
+      "id": "thangarasu",
+      "name": "Tension Thangarasu",
+      "nickname": "Walking Apocalypse",
+      "role": "High blood pressure & panic master (age 46)",
+      "catchphrase": "Aiyayo! Ellam pochu! Apocalypse vandhuruchu!",
+      "emoji": "🚨",
+      "files": {
+        "default": "/characters/thangarasu.png",
+        "avatar": "/characters/thangarasu_avatar.png",
+        "threeD": "/characters/thangarasu_3d.png"
+      },
+      "has3D": true
+    },
+    {
+      "id": "dhandapani",
+      "name": "Dowlath Dhandapani",
+      "nickname": "Empty Wallet Crorepati",
+      "role": "Fake billionaire financial advisor (age 36)",
+      "catchphrase": "500 crore deal pesitruken... tea-ku 5 roova change kudu bro!",
+      "emoji": "💸",
+      "files": {
+        "default": "/characters/dhandapani.png",
+        "avatar": "/characters/dhandapani_avatar.png",
+        "threeD": "/characters/dhandapani_3d.png"
+      },
+      "has3D": true
+    }
+  ]
+}

@@ -274,60 +274,6 @@ export const CAST: CharacterDefinition[] = [
     emoji: "💸",
     ttsVoice: "ta-IN-ValluvarNeural",
   },
-  {
-    id: "velu",
-    name: "Vetti Velu",
-    nameTts: "Vetti Velu",
-    nickname: "Bench Expert",
-    role: "Professional street corner advisor (age 35)",
-    personality:
-      "Sits on the same cement bench at the street corner from sunrise to sunset. Gives completely unsolicited, deeply confident life advice to working people rushing past him. Has never worked a day but has an opinion on everyone else's career.",
-    catchphrase: "Naan soldratha kelu... experience iruku!",
-    skinColor: "#c8a060",
-    shirtColor: "#6b7280",
-    hairColor: "#374151",
-    bottomColor: "#d1d5db",
-    shoeColor: "#9ca3af",
-    accessory: "Permanently seated on a cement bench, lungi, a steel tumbler of tea, arms folded in wisdom pose",
-    emoji: "🪑",
-    ttsVoice: "ta-IN-ValluvarNeural",
-  },
-  {
-    id: "selvam",
-    name: "Sentiment Selvam",
-    nameTts: "Sentiment Selvam",
-    nickname: "80s Drama King",
-    role: "Melodrama specialist (age 30)",
-    personality:
-      "Melodramatic to the core. Turns every minor inconvenience — a mosquito bite, a missed bus, a cold coffee — into a full 80s cinema tearjerker speech with heavy background music playing in his head. Holds his chest when emotional. Points at the sky.",
-    catchphrase: "Ennoda life-la enna thaaan nadakuthu!",
-    skinColor: "#c89a52",
-    shirtColor: "#9f1239",
-    hairColor: "#1c0000",
-    bottomColor: "#881337",
-    shoeColor: "#be123c",
-    accessory: "Always slightly damp eyes, dramatic hand on chest, invisible sad background music, sky-pointing finger",
-    emoji: "😭",
-    ttsVoice: "ta-IN-ValluvarNeural",
-  },
-  {
-    id: "chandran",
-    name: "Cycle Chandran",
-    nameTts: "Cycle Chandran",
-    nickname: "Superbike Dreamer",
-    role: "Rusted bicycle philosopher (age 28)",
-    personality:
-      "Rides a squeaky, completely rusted bicycle with no brakes and one working pedal. But talks about road trips and travel as if he is navigating a superbike across state borders with GPS and leather jacket. Refers to his bicycle as 'my machine'.",
-    catchphrase: "My machine-a pathi pesaathinga... idu vera level!",
-    skinColor: "#d4a06a",
-    shirtColor: "#0369a1",
-    hairColor: "#1c1000",
-    bottomColor: "#0c4a6e",
-    shoeColor: "#0284c7",
-    accessory: "Helmet on a rusty bicycle, biker jacket, sunglasses, squeaky bicycle with wobbling wheels",
-    emoji: "🚲",
-    ttsVoice: "ta-IN-ValluvarNeural",
-  },
 ];
 
 /** Get a character by ID */
@@ -351,28 +297,25 @@ export function getCastNamesForPrompt(): string {
 }
 
 /**
- * Original Kuthu dance song for the weekly dance break.
+ * Original Kuthu dance song for the weekly dance break (13 Official 3D Characters).
  */
 export const KUTHU_DANCE_SONG = {
   title: "Vera Level Kuthu!",
   titleTamil: "வேற லெவல் குத்து!",
   danceDirections: [
-    "Senthil enters in slow motion — wind machine on full blast",
-    "Govind lectures wrong dance steps with 100% confidence",
-    "Battery Babu dances at 200% energy then suddenly snoozes",
-    "Gethu Ganesan flexes gold chains until mom calls his name",
-    "Anand tries an elaborate jump move that backfires hilariously",
+    "Scene Senthil enters in dramatic slow motion — wind machine on full blast",
+    "Google Govind lectures wrong dance steps with 100% confidence",
+    "Battery Babu dances at 200% energy then suddenly snoozes on a post",
+    "Gethu Ganesan flexes gold chains until mom calls 'Ganapathy!'",
+    "Aap-adicha Anand tries an elaborate jump move that backfires hilariously",
     "Mic Mohan screams the dance steps so loud speakers rattle",
-    "Parotta Pandi dances with a plate of hot parotta and salna",
-    "Alappara Aarumugam poses like an international king",
-    "Bullet Balu dances in leather jacket, then spots a puppy and runs",
+    "Parotta Pandi dances holding a plate of flaky parotta and hot salna",
+    "Alappara Aarumugam poses in purple velvet like an international king",
+    "Bullet Balu dances in leather jacket, then spots a puppy and climbs a tree",
     "Soda Mani tosses tea glasses while shouting town gossip",
-    "Sombu Sundaram dances lying down to save energy",
-    "Tension Thangarasu panics that the dance floor is collapsing",
-    "Dowlath Dhandapani dances while borrowing 5 rupees for chai",
-    "Vetti Velu advises everyone how to dance without moving an inch",
-    "Sentiment Selvam wipes cinematic tears while doing kuthu",
-    "Cycle Chandran rides his squeaky machine right through the circle",
+    "Sombu Sundaram dances lying down to save maximum energy",
+    "Tension Thangarasu panics clutching his head that the floor is collapsing",
+    "Dowlath Dhandapani dances royal swagger while borrowing 5 rupees for chai",
   ],
   lyrics: [
     "Scene Senthil slow motion-la vandhan!",
@@ -388,10 +331,7 @@ export const KUTHU_DANCE_SONG = {
     "Sombu Sundaram rest edukitte aadaan!",
     "Tension Thangarasu panic aagi thullinaan!",
     "Dowlath Dhandapani tea kaasu kettan!",
-    "Vetti Velu bench-la irundhu advice pannaan!",
-    "Sentiment Selvam கண்ணீர் விட்டு aadaan!",
-    "Cycle Chandran cycle-oda enter aadaan!",
-    "Ellaarum serntha vera level kuthu aaduvoam!",
+    "Pathu moonu perum serntha vera level kuthu aaduvoam!",
   ],
 };
 

@@ -14,6 +14,7 @@ import {
   Settings,
   Sparkles,
   Bot,
+  Users,
 } from "lucide-react";
 
 const NAV_ITEMS = [
@@ -21,6 +22,7 @@ const NAV_ITEMS = [
   { name: "Content Ideas", href: "/ideas", icon: Lightbulb },
   { name: "Script Studio", href: "/scripts", icon: FileText },
   { name: "Video Studio", href: "/studio", icon: Film },
+  { name: "Comedy Cast (3D)", href: "/characters", icon: Users },
   { name: "Video Library", href: "/videos", icon: PlaySquare },
   { name: "Publishing", href: "/publishing", icon: UploadCloud },
   { name: "Analytics", href: "/analytics", icon: BarChart3 },

@@ -69,7 +69,7 @@ function wrapText(text: string, maxCharsPerLine = 28): string[] {
 // CHARACTER SVG RENDERER (ALL 16 CHARACTERS)
 // ─────────────────────────────────────────────────────────────────────────────
 
-function getCharacterAccessorySvg(c: CharacterDefinition): string {
+export function getCharacterAccessorySvg(c: CharacterDefinition): string {
   switch (c.id) {
     case "senthil":
       // Hero sunglasses + collar up + wind-blown dramatic hair
@@ -241,7 +241,7 @@ function getCharacterAccessorySvg(c: CharacterDefinition): string {
   }
 }
 
-function renderCharacterBase(c: CharacterDefinition, pose: string): string {
+export function renderCharacterBase(c: CharacterDefinition, pose: string): string {
   let armsSvg = "";
   let mouthSvg = "";
   let eyebrowsSvg = "";
@@ -536,11 +536,30 @@ export async function generateCartoonSceneVisual(options: SceneVisualOptions): P
     .map(({ x, y, scale, charId }) => {
       try {
         const c = getCharacter(charId);
+        const charPngPath = path.join(process.cwd(), "public", "characters", `${charId}.png`);
+        let charGraphic = "";
+
+        if (fs.existsSync(charPngPath)) {
+          const imgBase64 = fs.readFileSync(charPngPath).toString("base64");
+          charGraphic = `
+            <defs>
+              <clipPath id="charClip_${charId}">
+                <rect x="-160" y="-280" width="320" height="460" rx="36" />
+              </clipPath>
+            </defs>
+            <rect x="-164" y="-284" width="328" height="468" rx="40" fill="#090d16" stroke="${c.shirtColor}" stroke-width="6" stroke-opacity="0.9" />
+            <image href="data:image/png;base64,${imgBase64}" x="-160" y="-280" width="320" height="460" preserveAspectRatio="xMidYMid slice" clip-path="url(#charClip_${charId})" />
+            <rect x="-160" y="-280" width="320" height="460" rx="36" fill="none" stroke="#facc15" stroke-width="3" stroke-opacity="0.7" />
+          `;
+        } else {
+          charGraphic = renderCharacterBase(c, pose);
+        }
+
         return `<g transform="translate(${x}, ${y}) scale(${scale})" filter="url(#popShadow)">
-          ${renderCharacterBase(c, pose)}
-          <g transform="translate(-64, 215)">
-            <rect width="128" height="34" rx="17" fill="#000000" fill-opacity="0.75"/>
-            <text x="64" y="23" font-family="Arial,sans-serif" font-size="15" font-weight="700" fill="#facc15" text-anchor="middle">${escapeXml(c.name)}</text>
+          ${charGraphic}
+          <g transform="translate(-75, 200)">
+            <rect width="150" height="38" rx="19" fill="#000000" fill-opacity="0.85" stroke="#facc15" stroke-width="2"/>
+            <text x="75" y="25" font-family="Arial,sans-serif" font-size="16" font-weight="800" fill="#facc15" text-anchor="middle">${escapeXml(c.name)}</text>
           </g>
         </g>`;
       } catch {
@@ -710,7 +729,27 @@ export async function generateThumbnail(options: ThumbnailOptions): Promise<stri
       .map((c, i) => {
         const pos = thumbPositions[i];
         const scale = isShorts ? (i === 1 ? 1.0 : 0.82) : i === 0 ? 0.96 : 0.76;
-        return `<g transform="translate(${pos.x}, ${pos.y}) scale(${scale})" filter="url(#popShadow)">${renderCharacterBase(c, "dancing")}</g>`;
+        const charPngPath = path.join(process.cwd(), "public", "characters", `${c.id}.png`);
+        let charGraphic = "";
+        if (fs.existsSync(charPngPath)) {
+          const imgBase64 = fs.readFileSync(charPngPath).toString("base64");
+          charGraphic = `
+            <defs>
+              <clipPath id="thumbCharClip_${c.id}">
+                <rect x="-180" y="-300" width="360" height="500" rx="40" />
+              </clipPath>
+            </defs>
+            <rect x="-186" y="-306" width="372" height="512" rx="46" fill="#090d16" stroke="#facc15" stroke-width="6" stroke-opacity="0.9" />
+            <image href="data:image/png;base64,${imgBase64}" x="-180" y="-300" width="360" height="500" preserveAspectRatio="xMidYMid slice" clip-path="url(#thumbCharClip_${c.id})" />
+            <g transform="translate(-100, 205)">
+              <rect width="200" height="42" rx="21" fill="#000000" fill-opacity="0.9" stroke="#facc15" stroke-width="2"/>
+              <text x="100" y="27" font-family="Arial,sans-serif" font-size="18" font-weight="900" fill="#ffffff" text-anchor="middle">${escapeXml(c.name)}</text>
+            </g>
+          `;
+        } else {
+          charGraphic = renderCharacterBase(c, "dancing");
+        }
+        return `<g transform="translate(${pos.x}, ${pos.y}) scale(${scale})" filter="url(#popShadow)">${charGraphic}</g>`;
       })
       .join("\n");
 
