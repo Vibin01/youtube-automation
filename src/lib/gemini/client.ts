@@ -37,6 +37,13 @@ export async function generateContentIdeas(
     return generateFallbackIdeas(input);
   }
 
+  const isTamilKids =
+    input.language === "Tamil" &&
+    (input.category === "kids" ||
+      input.niche.toLowerCase().includes("kids") ||
+      input.niche.toLowerCase().includes("cartoon") ||
+      input.niche.toLowerCase().includes("rhyme"));
+
   const prompt = `You are a viral YouTube content strategist and algorithm expert.
 Generate ${input.count} high-performing, high-CTR YouTube video ideas for:
 - Format: ${input.format === "SHORTS" ? "YouTube Shorts (under 60s, vertical 9:16)" : "Long-form Video (16:9)"}
@@ -45,6 +52,18 @@ Generate ${input.count} high-performing, high-CTR YouTube video ideas for:
 - Category: ${input.category}
 - Target Audience: ${input.targetAudience}
 - Tone: ${input.tone}
+${
+  isTamilKids
+    ? `
+IMPORTANT CHANNEL CONTEXT (Happy Kuttu Song):
+- This is for the animated Tamil kids cartoon channel "Happy Kuttu Song" starring "Kuttu", a cute and cheerful cartoon kid.
+- Topics: Classic Tamil moral stories (பாட்டி சுட்ட வடை, சிங்கமும் சுண்டெலியும், ஆமை முயல், நரி மற்றும் காகம்), fun rhymes, and kid-friendly moral lessons.
+- Titles: MUST be engaging, catchy Tamil titles with emojis (e.g. "குட்டி பாப்பா கதை: பாட்டி சுட்ட வடை! 🦊🌟 Kuttu Tamil Cartoon Stories").
+- Hook: Natural, sweet spoken Tamil hook (e.g. "வணக்கம் குட்டீஸ்! ஒரு பாட்டி சுட்ட வடை கதையை குட்டு சொல்ல கேட்கலாமா?").
+- Tags: Must include ["HappyKuttuSong", "TamilCartoon", "TamilStoriesForKids", "TamilRhymes", "KidsTamil", "MoralStoriesTamil", "Shorts"].
+`
+    : ""
+}
 
 Respond ONLY with a JSON object in this exact schema:
 {
@@ -104,20 +123,45 @@ export async function generateFullScript(
     return generateFallbackScript(input);
   }
 
-  const targetDuration = input.targetDurationSec || (input.format === "SHORTS" ? 50 : 300);
-  const estimatedScenesCount = Math.max(3, Math.round(targetDuration / (input.format === "SHORTS" ? 6 : 15)));
+  const targetDuration = input.targetDurationSec || (input.format === "SHORTS" ? 30 : 330);
+  const estimatedScenesCount = Math.max(3, Math.round(targetDuration / (input.format === "SHORTS" ? 6 : 14)));
+
+  const isTamilKids =
+    input.language === "Tamil" &&
+    (input.category === "kids" ||
+      input.niche.toLowerCase().includes("kids") ||
+      input.niche.toLowerCase().includes("cartoon") ||
+      input.niche.toLowerCase().includes("rhyme"));
 
   const prompt = `You are a master YouTube scriptwriter and video director.
 Write a complete, highly engaging video production package for:
 - Title: ${input.title}
 - Hook Idea: ${input.hook || "Create an irresistible hook"}
-- Format: ${input.format} (${input.format === "SHORTS" ? "Vertical 9:16 Shorts" : "Horizontal 16:9 Long-form"})
-- Language: ${input.language} (${input.language === "Tamil" ? "Write spoken narration in authentic Tamil script or clear Tanglish/Tamil, with matching English visual instructions" : "English"})
+- Format: ${input.format} (${input.format === "SHORTS" ? "Vertical 9:16 Shorts (approx 30 seconds)" : "Horizontal 16:9 Long-form Story (5 to 6 minutes)"})
+- Language: ${input.language} (${input.language === "Tamil" ? "Write spoken narration in authentic Tamil script, with matching English visual instructions" : "English"})
 - Niche: ${input.niche}
 - Category: ${input.category}
 - Tone: ${input.tone}
 - Target Duration: ${targetDuration} seconds
 - Additional Instructions: ${input.additionalInstructions || "Keep pacing fast, high retention, no fluff."}
+${
+  isTamilKids
+    ? `
+SPECIAL ANIMATION GUIDELINES FOR "HAPPY KUTTU SONG":
+- The video features "Kuttu", a cute and joyful animated cartoon character.
+- "narration": MUST be written strictly in sweet, cheerful, rhythmic spoken Tamil script (Edge-TTS friendly).
+- "visualPrompt": In each scene, describe Kuttu's pose ([Pose: dancing], [Pose: singing], [Pose: pointing], [Pose: curious]) in a colorful cartoon setting with sunny meadow, rainbow, smiling sun, flowers, or stars.
+${
+  input.format === "LONG_FORM"
+    ? `- 5 TO 6 MINUTE STORY WITH DANCE: Divide into an engaging multi-part story. In the middle (Scenes 8-12), INCLUDE AN ENERGETIC TAMIL DANCE SONG where Kuttu sings and dances ([Pose: dancing]) to rhythmic beats! Ensure the dance sequence and climax can be cut into 30-second Shorts!`
+    : `- 30-SECOND DANCE & VIRAL SHORT: Keep duration tightly to 30 seconds (4 to 5 quick scenes). Focus on a high-energy dance moment, cheerful song, or funny cartoon twist that hooks kids immediately!`
+}
+- "captionText": Short, punchy Tamil phrase (under 5-6 words) for the speech bubble.
+- "description": Comprehensive SEO description in Tamil & English with moral takeaway and subscribe CTA for Happy Kuttu Song.
+- "hashtags": ["#HappyKuttuSong", "#TamilCartoon", "#TamilStories", "#KidsRhymes", "#TamilShorts"].
+`
+    : ""
+}
 
 Divide the script into approximately ${estimatedScenesCount} distinct scenes.
 For each scene, provide:
@@ -188,6 +232,43 @@ function generateFallbackIdeas(input: IdeaGenerationInput): GeneratedIdeaItem[] 
   const isShorts = input.format === "SHORTS";
 
   if (isTamil) {
+    if (
+      input.category === "kids" ||
+      input.niche.toLowerCase().includes("kids") ||
+      input.niche.toLowerCase().includes("cartoon") ||
+      input.niche.toLowerCase().includes("rhyme")
+    ) {
+      return [
+        {
+          title: "குட்டி பாப்பா கதை: பாட்டி சுட்ட வடை! 🦊🌟 Happy Kuttu Song",
+          hook: "வணக்கம் குட்டீஸ்! ஒரு பாட்டி சுட்ட வடை கதையை குட்டு சொல்ல கேட்கலாமா?",
+          description: "குட்டு சொல்லும் பாட்டி சுட்ட வடை கதை! குழந்தைகளுக்கான அழகான தமிழ் கார்ட்டூன் கதை மற்றும் பாட்டு.\n\n#HappyKuttuSong #TamilCartoon #TamilStories #Shorts",
+          targetAudience: "Tamil kids and parents",
+          niche: input.niche,
+          estimatedDuration: isShorts ? 45 : 300,
+          tags: ["HappyKuttuSong", "TamilCartoon", "TamilStoriesForKids", "TamilRhymes", "KidsTamil", "MoralStoriesTamil", "Shorts"],
+        },
+        {
+          title: "சிங்கமும் சுண்டெலியும்! 🦁🐭 குட்டுவின் சுட்டி கார்ட்டூன் கதை",
+          hook: "ஒரு பெரிய காட்டில் வாழ்ந்த சிங்கமும் சின்ன எலியும் என்ன ஆச்சு தெரியுமா?",
+          description: "சிங்கமும் சுண்டெலியும் - ஆபத்தில் உதவிய சுண்டெலியின் நன்னெறி கதை.\n\n#HappyKuttuSong #TamilCartoon #TamilStories #Shorts",
+          targetAudience: "Tamil kids and families",
+          niche: input.niche,
+          estimatedDuration: isShorts ? 45 : 300,
+          tags: ["HappyKuttuSong", "TamilCartoon", "TamilStoriesForKids", "MoralStories", "Shorts"],
+        },
+        {
+          title: "நிலா நிலா ஓடி வா! 🌙 குட்டுவுடன் அழகான தமிழ் பாப்பா பாட்டு",
+          hook: "வானத்தில் இருக்கும் நிலாவை பார்த்து குட்டு என்ன பாடுறான் தெரியுமா?",
+          description: "நிலா நிலா ஓடி வா நில்லாமல் ஓடி வா - குட்டு பாடும் மகிழ்ச்சியான தமிழ் மழலையர் பாடல்.\n\n#HappyKuttuSong #TamilRhymes #KidsTamil #Shorts",
+          targetAudience: "Tamil kids and toddlers",
+          niche: input.niche,
+          estimatedDuration: isShorts ? 45 : 300,
+          tags: ["HappyKuttuSong", "TamilRhymes", "TamilCartoon", "KidsSongsTamil", "Shorts"],
+        },
+      ];
+    }
+
     return [
       {
         title: isShorts ? "இதை தெரிஞ்சிக்காம AI Use பண்ணாதீங்க! 😱" : "2026-ல் AI கொண்டு மாதம் ₹50,000 சம்பாதிக்க 5 வழிகள்",
@@ -258,6 +339,63 @@ function generateFallbackScript(input: ScriptGenerationInput): GeneratedScriptOu
   const isShorts = input.format === "SHORTS";
 
   if (isTamil) {
+    if (
+      input.category === "kids" ||
+      input.niche.toLowerCase().includes("kids") ||
+      input.niche.toLowerCase().includes("cartoon") ||
+      input.niche.toLowerCase().includes("rhyme")
+    ) {
+      return {
+        title: input.title,
+        hook: "வணக்கம் நண்பர்களே! இன்னைக்கு குட்டுவுடன் ஒரு அருமையான கதை கேட்கலாம்!",
+        body: "வணக்கம் நண்பர்களே! இன்னைக்கு நாம் பார்க்கப்போவது ஒரு சுவையான கதை. ஒரு அழகான கிராமத்தில் குட்டு என்ற சுட்டி பையன் இருந்தான். அவன் தினமும் பாடி ஆடி மகிழ்ந்தான். அனைவருக்கும் அன்போடு உதவி செய்து நல்ல நண்பனாக இருந்தான். வீடியோ பிடித்திருந்தால் மறக்காமல் Like மற்றும் Subscribe செய்யுங்கள்!",
+        callToAction: "இந்த வீடியோ பிடித்திருந்தால் உடனே Happy Kuttu Song சேனலுக்கு Subscribe பண்ணுங்க குட்டீஸ்!",
+        description: `${input.title}\n\nகுட்டு வழங்கும் மகிழ்ச்சியான தமிழ் கார்ட்டூன் கதை & பாடல்.\n\n🔔 Subscribe to Happy Kuttu Song for daily cartoon videos!\n\n#HappyKuttuSong #TamilCartoon #TamilStories #KidsTamil #Shorts`,
+        hashtags: ["#HappyKuttuSong", "#TamilCartoon", "#TamilStories", "#KidsTamil", "#Shorts"],
+        thumbnailIdeas: [
+          "Text: குட்டுவின் கதை! | Visual: Smiling cartoon character Kuttu waving with vibrant rainbow",
+          "Text: பாட்டி சுட்ட வடை! | Visual: Kuttu pointing to delicious vadas with sparkles",
+        ],
+        scenes: [
+          {
+            orderIndex: 0,
+            narration: "வணக்கம் நண்பர்களே! இன்னைக்கு குட்டுவுடன் ஒரு அருமையான கதை கேட்கலாமா?",
+            visualPrompt: "[Pose: waving] Kuttu waving happily in sunny green meadow with smiling sun and rainbow",
+            captionText: "வணக்கம் நண்பர்களே! 🎈",
+            duration: 6.0,
+          },
+          {
+            orderIndex: 1,
+            narration: "ஒரு அழகான கிராமத்தில் பாட்டி ஒருவர் சுடச்சுட வடை சுட்டுக்கொண்டு இருந்தார்.",
+            visualPrompt: "[Pose: pointing] Kuttu pointing excitedly with bright sparkles around",
+            captionText: "பாட்டி சுட்ட வடை! 🌟",
+            duration: 6.0,
+          },
+          {
+            orderIndex: 2,
+            narration: "அப்போது அங்கே வந்த ஒரு தந்திர நரி அந்த வடையை எப்படியாவது சாப்பிட நினைத்தது.",
+            visualPrompt: "[Pose: curious] Kuttu thinking with thought bubble and curious face",
+            captionText: "அங்கே வந்த தந்திர நரி! 🦊",
+            duration: 6.0,
+          },
+          {
+            orderIndex: 3,
+            narration: "ஆனால் புத்திசாலியான காகம் எச்சரிக்கையாக இருந்து நரியிடம் ஏமாறாமல் தப்பியது!",
+            visualPrompt: "[Pose: dancing] Kuttu dancing joyfully with musical notes and flowers",
+            captionText: "புத்திசாலி காகம்! 🐦",
+            duration: 6.0,
+          },
+          {
+            orderIndex: 4,
+            narration: "இந்த கதை உங்களுக்கு பிடித்திருந்தால் உடனே Happy Kuttu Song சேனலை Subscribe செய்யுங்கள்!",
+            visualPrompt: "[Pose: singing] Kuttu holding golden microphone singing happily with hearts and stars",
+            captionText: "Subscribe பண்ணுங்க குட்டீஸ்! 🔔",
+            duration: 6.0,
+          },
+        ],
+      };
+    }
+
     return {
       title: input.title,
       hook: isShorts ? "நில்லுங்கள்! இதை தெரிஞ்சிக்காம AI-யை தொடாதீங்க!" : "வணக்கம் நண்பர்களே! இந்த வீடியோவில் மிக முக்கியமான 3 விஷயங்களை பார்க்கப்போகிறோம்.",

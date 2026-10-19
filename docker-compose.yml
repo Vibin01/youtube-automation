@@ -1,0 +1,26 @@
+version: "3.8"
+
+services:
+  autotube:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: autotube-production
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=file:/app/prisma/dev.db
+      - NEXT_PUBLIC_APP_URL=http://localhost:3000
+    env_file:
+      - .env.local
+    volumes:
+      - autotube_data:/app/prisma
+      - autotube_output:/app/output
+
+volumes:
+  autotube_data:
+    name: autotube_data
+  autotube_output:
+    name: autotube_output

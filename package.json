@@ -11,6 +11,10 @@
     "prisma:push": "prisma db push",
     "prisma:studio": "prisma studio",
     "worker": "tsx src/worker/index.ts",
+    "worker:daily": "tsx src/worker/daily-scheduler.ts",
+    "worker:daily:full": "tsx src/worker/daily-scheduler.ts --full",
+    "worker:daily:short": "tsx src/worker/daily-scheduler.ts --short",
+    "worker:daily:now": "tsx src/worker/daily-scheduler.ts --now",
     "test": "vitest run"
   },
   "dependencies": {

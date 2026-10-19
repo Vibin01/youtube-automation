@@ -103,11 +103,43 @@ export async function handleOAuthCallback(code: string) {
  * Returns an authenticated YouTube API client for a connected channel.
  */
 export async function getAuthenticatedYouTubeClient(channelDbId?: string) {
-  const channel = channelDbId
+  let channel = channelDbId
     ? await prisma.youTubeChannel.findUnique({ where: { id: channelDbId } })
     : await prisma.youTubeChannel.findFirst({ where: { isConnected: true } });
 
   if (!channel) {
+    const envRefreshToken = process.env.YOUTUBE_REFRESH_TOKEN;
+    const envChannelId = process.env.YOUTUBE_CHANNEL_ID || "UCuMrJMyuch2dn4ldJejdiVQ";
+    const envChannelTitle = process.env.YOUTUBE_CHANNEL_TITLE || "Happy Kuttu Song";
+
+    if (envRefreshToken) {
+      const oauth2Client = getOAuthClient();
+      if (oauth2Client) {
+        oauth2Client.setCredentials({ refresh_token: envRefreshToken });
+        const { credentials } = await oauth2Client.refreshAccessToken();
+
+        channel = await prisma.youTubeChannel.upsert({
+          where: { channelId: envChannelId },
+          update: {
+            title: envChannelTitle,
+            accessToken: credentials.access_token || "",
+            refreshToken: envRefreshToken,
+            tokenExpiry: credentials.expiry_date ? new Date(credentials.expiry_date) : undefined,
+            isConnected: true,
+          },
+          create: {
+            channelId: envChannelId,
+            title: envChannelTitle,
+            accessToken: credentials.access_token || "",
+            refreshToken: envRefreshToken,
+            tokenExpiry: credentials.expiry_date ? new Date(credentials.expiry_date) : undefined,
+            isConnected: true,
+          },
+        });
+        oauth2Client.setCredentials(credentials);
+        return { youtube: google.youtube({ version: "v3", auth: oauth2Client }), channel };
+      }
+    }
     throw new Error("No connected YouTube channel found. Please connect your channel first.");
   }
 

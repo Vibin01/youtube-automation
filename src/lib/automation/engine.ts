@@ -30,6 +30,9 @@ interface PipelinePayload {
   title?: string;
   autoApprove?: boolean;
   autoPublish?: boolean;
+  privacyStatus?: "private" | "unlisted" | "public";
+  madeForKids?: boolean;
+  visualStyle?: "cartoon" | "gradient" | "tech";
 }
 
 /**
@@ -248,7 +251,8 @@ export async function executeAutomationJob(jobId: string): Promise<void> {
               hashtags: JSON.stringify(scriptOutput.hashtags),
               thumbnailIdeas: JSON.stringify(scriptOutput.thumbnailIdeas),
               targetDurationSec: payload.targetDurationSec || 60,
-              isApproved: payload.autoApprove || settings.autoApproveScripts,
+              isApproved:
+                payload.autoApprove !== undefined ? payload.autoApprove : settings.autoApproveScripts,
             },
           });
 
@@ -288,10 +292,9 @@ export async function executeAutomationJob(jobId: string): Promise<void> {
         });
 
         const isApproved =
-          project?.humanApproved ||
-          project?.script?.isApproved ||
-          payload.autoApprove ||
-          settings.autoApproveScripts;
+          payload.autoApprove !== undefined
+            ? payload.autoApprove
+            : (project?.humanApproved || project?.script?.isApproved || settings.autoApproveScripts);
 
         if (!isApproved) {
           // Pause execution and wait for human review in Dashboard UI
@@ -353,20 +356,24 @@ export async function executeAutomationJob(jobId: string): Promise<void> {
           },
         });
 
-        const shouldAutoPublish = payload.autoPublish || settings.autoPublish;
+        const shouldAutoPublish =
+          payload.autoPublish !== undefined ? payload.autoPublish : settings.autoPublish;
         const render = project?.renders[0];
 
         if (shouldAutoPublish && render && render.outputPath) {
           const channel = await prisma.youTubeChannel.findFirst({ where: { isConnected: true } });
           if (channel) {
+            const targetVisibility = (payload.privacyStatus || settings.defaultVisibility || "public") as "private" | "unlisted" | "public";
+            const isMadeForKids = payload.madeForKids !== undefined ? payload.madeForKids : project.madeForKids;
+
             const uploadRes = await uploadVideoToYouTube({
               videoFilePath: render.outputPath,
               thumbnailFilePath: render.thumbnailPath || undefined,
               title: project.title,
               description: project.description || project.title,
               tags: project.tags ? JSON.parse(project.tags) : [],
-              privacyStatus: "private", // Safe initial upload
-              madeForKids: project.madeForKids,
+              privacyStatus: targetVisibility,
+              madeForKids: isMadeForKids,
               channelId: channel.id,
             });
 
@@ -376,7 +383,7 @@ export async function executeAutomationJob(jobId: string): Promise<void> {
                 channelId: channel.id,
                 title: project.title,
                 description: project.description,
-                privacyStatus: "private",
+                privacyStatus: targetVisibility,
                 youtubeVideoId: uploadRes.videoId,
                 youtubeVideoUrl: uploadRes.videoUrl,
                 status: "PUBLISHED",

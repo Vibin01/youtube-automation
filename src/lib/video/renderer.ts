@@ -141,6 +141,8 @@ export async function renderVideoProject(
         visualPrompt: scene.visualPrompt || undefined,
         captionText: scene.captionText || undefined,
         format: project.format as "SHORTS" | "LONG_FORM",
+        language: project.language as "English" | "Tamil",
+        style: project.language === "Tamil" ? "cartoon" : "gradient",
       });
 
       await prisma.scene.update({
@@ -149,32 +151,64 @@ export async function renderVideoProject(
       });
     }
 
-    // 3. Render scene segment
+    // 3. Render scene segment with camera motion
     const segmentPath = path.join(segmentsDir, `segment_${i}.mp4`);
-    // Create mp4 from static image and audio
-    await runFFmpeg([
-      "-y",
-      "-loop",
-      "1",
-      "-i",
-      imagePath,
-      "-i",
-      audioPath,
-      "-c:v",
-      "libx264",
-      "-tune",
-      "stillimage",
-      "-c:a",
-      "aac",
-      "-b:a",
-      "192k",
-      "-pix_fmt",
-      "yuv420p",
-      "-shortest",
-      "-t",
-      sceneDuration.toFixed(2),
-      segmentPath,
-    ]);
+    const fps = 25;
+    const frames = Math.max(25, Math.round(sceneDuration * fps));
+    const width = isShorts ? 1080 : 1920;
+    const height = isShorts ? 1920 : 1080;
+
+    try {
+      // Animated camera motion (gentle zoom in) for engaging cartoon animation
+      await runFFmpeg([
+        "-y",
+        "-loop",
+        "1",
+        "-i",
+        imagePath,
+        "-i",
+        audioPath,
+        "-vf",
+        `zoompan=z='min(zoom+0.0008,1.08)':x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':d=${frames}:s=${width}x${height}:fps=${fps}`,
+        "-c:v",
+        "libx264",
+        "-c:a",
+        "aac",
+        "-b:a",
+        "192k",
+        "-pix_fmt",
+        "yuv420p",
+        "-shortest",
+        "-t",
+        sceneDuration.toFixed(2),
+        segmentPath,
+      ]);
+    } catch {
+      // Fallback to static stillimage if zoompan is unsupported
+      await runFFmpeg([
+        "-y",
+        "-loop",
+        "1",
+        "-i",
+        imagePath,
+        "-i",
+        audioPath,
+        "-c:v",
+        "libx264",
+        "-tune",
+        "stillimage",
+        "-c:a",
+        "aac",
+        "-b:a",
+        "192k",
+        "-pix_fmt",
+        "yuv420p",
+        "-shortest",
+        "-t",
+        sceneDuration.toFixed(2),
+        segmentPath,
+      ]);
+    }
 
     segmentFiles.push(segmentPath);
     totalDuration += sceneDuration;
@@ -212,8 +246,10 @@ export async function renderVideoProject(
     outputPath: thumbnailPath,
     title: project.title,
     hook: project.script?.hook || undefined,
-    badge: project.format === "SHORTS" ? "SHORTS" : "MUST WATCH",
+    badge: project.language === "Tamil" ? "🌟 HAPPY KUTTU SONG 🌟" : project.format === "SHORTS" ? "SHORTS" : "MUST WATCH",
     format: project.format as "SHORTS" | "LONG_FORM",
+    language: project.language as "English" | "Tamil",
+    style: project.language === "Tamil" ? "cartoon" : "gradient",
   });
 
   onProgress?.(95, "Validating output file metrics...");
@@ -251,3 +287,46 @@ export async function renderVideoProject(
     fileSizeBytes,
   };
 }
+
+/**
+ * Extracts a 30-second vertical (9:16) Short from a master video with FFmpeg.
+ */
+export async function sliceShortClipFromVideo(params: {
+  sourceVideoPath: string;
+  outputShortPath: string;
+  startSec?: number;
+  durationSec?: number;
+}): Promise<string> {
+  const start = params.startSec || 0;
+  const duration = params.durationSec || 30;
+
+  const dir = path.dirname(params.outputShortPath);
+  if (!fs.existsSync(dir)) {
+    fs.mkdirSync(dir, { recursive: true });
+  }
+
+  // Scale and center-crop from 16:9 to vertical 1080x1920 (9:16) Shorts format
+  await runFFmpeg([
+    "-y",
+    "-ss",
+    start.toFixed(2),
+    "-i",
+    params.sourceVideoPath,
+    "-t",
+    duration.toFixed(2),
+    "-vf",
+    "scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920",
+    "-c:v",
+    "libx264",
+    "-c:a",
+    "aac",
+    "-b:a",
+    "192k",
+    "-pix_fmt",
+    "yuv420p",
+    params.outputShortPath,
+  ]);
+
+  return params.outputShortPath;
+}
+

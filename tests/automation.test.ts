@@ -33,7 +33,7 @@ describe("Automation Engine and Job Runner", () => {
     const job = await createAutomationJob({
       workflowType: "FULL_PIPELINE",
       payload: {
-        title: "Test Safety Review Pipeline",
+        title: `Test Safety Review Pipeline ${Date.now()}`,
         niche: "Tech Productivity",
         format: "SHORTS",
         language: "English",
