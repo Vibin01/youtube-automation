@@ -2,8 +2,29 @@ import { createAutomationJob, executeAutomationJob } from "../lib/automation/eng
 import { prisma } from "../lib/database/prisma";
 import { getAppSettings } from "../lib/database/settings";
 import { sliceShortClipFromVideo } from "../lib/video/renderer";
+import { getAuthenticatedYouTubeClient } from "../lib/youtube/client";
 import path from "path";
 import fs from "fs";
+
+/**
+ * Ensures a valid connected YouTube channel exists in the database.
+ * If running in a headless CI environment (e.g. GitHub Actions), it auto-provisions
+ * the channel record using YOUTUBE_REFRESH_TOKEN.
+ */
+export async function ensureYouTubeChannelReady() {
+  let channel = await prisma.youTubeChannel.findFirst({ where: { isConnected: true } });
+  if (!channel && process.env.YOUTUBE_REFRESH_TOKEN) {
+    console.log("🔑 Initializing YouTube Channel authorization from environment secret...");
+    try {
+      const auth = await getAuthenticatedYouTubeClient();
+      channel = auth.channel;
+      console.log(`✅ YouTube Channel connected: ${channel.title} (${channel.channelId})`);
+    } catch (authErr) {
+      console.error("❌ Failed to authenticate YouTube Channel from secret:", authErr);
+    }
+  }
+  return channel;
+}
 
 /**
  * Converts current Date to Indian Standard Time (IST, UTC+5:30).
@@ -88,9 +109,9 @@ export async function runWeeklyFullStoryPublishing(): Promise<void> {
   console.log(`💃 Features: Engaging story + Animated Tamil Dance Number`);
   console.log(`================================================================`);
 
-  const channel = await prisma.youTubeChannel.findFirst({ where: { isConnected: true } });
+  const channel = await ensureYouTubeChannelReady();
   if (!channel) {
-    console.error("❌ No connected YouTube channel found!");
+    console.error("❌ No connected YouTube channel found! Please ensure YOUTUBE_REFRESH_TOKEN secret is configured.");
     return;
   }
 
@@ -174,9 +195,9 @@ export async function runShortPublishing(themeType: "MORNING_STORY_HIGHLIGHT" | 
   console.log(`🌟 Theme: ${isEveningDance ? "Kuttu Dance & Rhyme Celebration 💃" : "Kuttu Morning Story Highlight 📖"}`);
   console.log(`================================================================`);
 
-  const channel = await prisma.youTubeChannel.findFirst({ where: { isConnected: true } });
+  const channel = await ensureYouTubeChannelReady();
   if (!channel) {
-    console.error("❌ No connected YouTube channel found!");
+    console.error("❌ No connected YouTube channel found! Please ensure YOUTUBE_REFRESH_TOKEN secret is configured.");
     return;
   }
 
@@ -256,6 +277,7 @@ export async function startMultiSlotScheduler(): Promise<void> {
     } else {
       await runShortPublishing(nextInfo.slotType === "EVENING_SLOT" ? "EVENING_DANCE_SHORT" : "MORNING_STORY_HIGHLIGHT");
     }
+    return;
   }
 
   // Continuous loop
@@ -289,9 +311,7 @@ export async function startMultiSlotScheduler(): Promise<void> {
 }
 
 // Standalone execution entrypoint
-if (require.main === module || process.argv.includes("--run-daily")) {
-  startMultiSlotScheduler().catch((err) => {
-    console.error("Fatal scheduler error:", err);
-    process.exit(1);
-  });
-}
+startMultiSlotScheduler().catch((err) => {
+  console.error("Fatal scheduler error:", err);
+  process.exit(1);
+});

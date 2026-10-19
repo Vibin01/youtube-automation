@@ -2,7 +2,7 @@ import { prisma } from "../database/prisma";
 import { getAppSettings } from "../database/settings";
 import { generateContentIdeas, generateFullScript } from "../gemini/client";
 import { renderVideoProject } from "../video/renderer";
-import { uploadVideoToYouTube } from "../youtube/client";
+import { uploadVideoToYouTube, getAuthenticatedYouTubeClient } from "../youtube/client";
 
 export type JobStatus =
   | "queued"
@@ -359,9 +359,16 @@ export async function executeAutomationJob(jobId: string): Promise<void> {
         const shouldAutoPublish =
           payload.autoPublish !== undefined ? payload.autoPublish : settings.autoPublish;
         const render = project?.renders[0];
-
         if (shouldAutoPublish && render && render.outputPath) {
-          const channel = await prisma.youTubeChannel.findFirst({ where: { isConnected: true } });
+          let channel = await prisma.youTubeChannel.findFirst({ where: { isConnected: true } });
+          if (!channel && process.env.YOUTUBE_REFRESH_TOKEN) {
+            try {
+              const auth = await getAuthenticatedYouTubeClient();
+              channel = auth.channel;
+            } catch (authErr) {
+              console.error("Could not auto-provision channel for upload:", authErr);
+            }
+          }
           if (channel) {
             const targetVisibility = (payload.privacyStatus || settings.defaultVisibility || "public") as "private" | "unlisted" | "public";
             const isMadeForKids = payload.madeForKids !== undefined ? payload.madeForKids : project.madeForKids;
