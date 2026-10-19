@@ -8,6 +8,7 @@ import {
   GeneratedScriptSchema,
   GeneratedScriptOutput,
 } from "../validation";
+import { getCastSummaryForPrompt, KUTHU_DANCE_SONG } from "../characters/cast";
 
 /**
  * Returns an instance of GoogleGenAI using the active API key.
@@ -56,12 +57,14 @@ Generate ${input.count} high-performing, high-CTR YouTube video ideas for:
 ${
   isTamilKids
     ? `
-IMPORTANT CHANNEL CONTEXT (Happy Kuttu Song):
-- This is for the animated Tamil kids cartoon channel "Happy Kuttu Song" starring "Kuttu", a cute and cheerful cartoon kid.
-- Topics: Classic Tamil moral stories (பாட்டி சுட்ட வடை, சிங்கமும் சுண்டெலியும், ஆமை முயல், நரி மற்றும் காகம்), fun rhymes, and kid-friendly moral lessons.
-- Titles: MUST be engaging, catchy Tamil titles with emojis (e.g. "குட்டி பாப்பா கதை: பாட்டி சுட்ட வடை! 🦊🌟 Kuttu Tamil Cartoon Stories").
-- Hook: Natural, sweet spoken Tamil hook (e.g. "வணக்கம் குட்டீஸ்! ஒரு பாட்டி சுட்ட வடை கதையை குட்டு சொல்ல கேட்கலாமா?").
-- Tags: Must include ["HappyKuttuSong", "TamilCartoon", "TamilStoriesForKids", "TamilRhymes", "KidsTamil", "MoralStoriesTamil", "Shorts"].
+IMPORTANT CHANNEL CONTEXT — HAPPY KUTTU SONG:
+This channel features a permanent cast of hilarious animated Tamil comedy characters. ALWAYS use these EXACT characters — no others:
+${getCastSummaryForPrompt()}
+
+- Genres: Tamil street comedy, hilarious neighborhood misunderstandings, witty banter, and energetic Kuthu dance breaks.
+- Titles: Super catchy Tamil titles with emojis featuring characters (e.g. "அலப்பறை ஆறுமுகம் vs புல்லட் பாலு! 🤣🔥 Scene Senthil Comedy").
+- Hook: Natural, fast-paced spoken colloquial Tamil punch dialogue.
+- Tags: Always include ["HappyKuttuSong", "TamilComedy", "TamilAnimation", "TamilShorts", "KuthuDance", "TamilCartoon"].
 `
     : ""
 }
@@ -149,16 +152,41 @@ ${
   isTamilKids
     ? `
 SPECIAL ANIMATION GUIDELINES FOR "HAPPY KUTTU SONG":
-- The video features "Kuttu", a cute and joyful animated cartoon character.
-- "narration": MUST be written strictly in sweet, cheerful, rhythmic spoken Tamil script (Edge-TTS friendly).
-- "visualPrompt": In each scene, describe Kuttu's pose ([Pose: dancing], [Pose: singing], [Pose: pointing], [Pose: curious]) in a colorful cartoon setting with sunny meadow, rainbow, smiling sun, flowers, or stars.
+== PERMANENT COMEDY CAST (ALWAYS use these characters, never create new ones) ==
+${getCastSummaryForPrompt()}
+
+DIALOGUE STYLE RULES:
+- Write narration as NATURAL, FAST-PACED, HILARIOUS spoken colloquial Tamil — punchy, lively, dynamic.
+- Each character MUST speak in their own iconic voice/personality with their signature catchphrase.
+- Format character dialogue as: [செந்தில்]: "என்ட்ரி வேற லெவல்!" or [ஆறுமுகம்]: "இன்டர்நேஷனல் ஸ்டாண்டர்ட் புரோ!"
+- Keep sentences short, fast-talking, comedy timing.
+
+VISUAL RULES:
+- "visualPrompt": Specify which characters appear by name (e.g. [Characters: senthil, aarumugam, balu]) plus their poses ([Pose: dancing/singing/pointing/thinking/surprised]).
+- Set colorful comedy cartoon backgrounds: Soda Mani's tea stall, street corner bench, dusty road, coconut trees.
 ${
   input.format === "LONG_FORM"
-    ? `- 5 TO 6 MINUTE STORY WITH DANCE: Divide into an engaging multi-part story. In the middle (Scenes 8-12), INCLUDE AN ENERGETIC TAMIL DANCE SONG where Kuttu sings and dances ([Pose: dancing]) to rhythmic beats! Ensure the dance sequence and climax can be cut into 30-second Shorts!`
-    : `- 30-SECOND DANCE & VIRAL SHORT: Keep duration tightly to 30 seconds (4 to 5 quick scenes). Focus on a high-energy dance moment, cheerful song, or funny cartoon twist that hooks kids immediately!`
+    ? `
+STORY STRUCTURE (5-6 minutes):
+- Scenes 1-4: The Setup — Scene Senthil, Alappara Aarumugam, or Bullet Balu kick off a hilarious misunderstanding.
+- Scenes 5-9: Chaos escalates — Soda Mani spreads gossip, Sombu Sundaram refuses to move, Tension Thangarasu screams apocalypse.
+- Scenes 10-14: KUTHU DANCE BREAK (30 seconds) — ALL CHARACTERS break into high-energy KUTHU DANCE!
+  Song title: "${KUTHU_DANCE_SONG.title}" (${KUTHU_DANCE_SONG.titleTamil}).
+  Dance directions: ${KUTHU_DANCE_SONG.danceDirections.join(" | ")}.
+  Dance lyrics (one line per dance scene captionText): ${KUTHU_DANCE_SONG.lyrics.join(" / ")}.
+  Mark these scenes with isKuthuDance: true in visualPrompt.
+- Scenes 15-18: Climax & Backfire — Anand's master plan backfires, Dhandapani asks for tea money, happy funny resolution!
+- Scene 19+: Like & Subscribe CTA with the entire gang celebrating!
+`
+    : `
+30-SECOND SHORT RULES:
+- 4 to 5 quick scenes, each under 7 seconds.
+- Pick 1-2 characters for a funny moment or energetic dance.
+- End with a subscribe CTA scene.
+`
 }
-- "captionText": Short, punchy Tamil phrase (under 5-6 words) for the speech bubble.
-- "description": Comprehensive SEO description in Tamil & English with moral takeaway and subscribe CTA for Happy Kuttu Song.
+- "captionText": Short, punchy Tamil phrase (3-5 words) for the speech bubble.
+- "description": SEO description in Tamil & English with moral and subscribe CTA.
 - "hashtags": ["#HappyKuttuSong", "#TamilCartoon", "#TamilStories", "#KidsRhymes", "#TamilShorts"].
 `
     : ""
@@ -241,31 +269,31 @@ function generateFallbackIdeas(input: IdeaGenerationInput): GeneratedIdeaItem[] 
     ) {
       return [
         {
-          title: "குட்டி பாப்பா கதை: பாட்டி சுட்ட வடை! 🦊🌟 Happy Kuttu Song",
-          hook: "வணக்கம் குட்டீஸ்! ஒரு பாட்டி சுட்ட வடை கதையை குட்டு சொல்ல கேட்கலாமா?",
-          description: "குட்டு சொல்லும் பாட்டி சுட்ட வடை கதை! குழந்தைகளுக்கான அழகான தமிழ் கார்ட்டூன் கதை மற்றும் பாட்டு.\n\n#HappyKuttuSong #TamilCartoon #TamilStories #Shorts",
-          targetAudience: "Tamil kids and parents",
+          title: "அலப்பறை ஆறுமுகம் vs புல்லட் பாலு! 🤣🔥 மாஸ் காமெடி | Happy Kuttu Song",
+          hook: "இன்டர்நேஷனல் பாஸ் அலப்பறை ஆறுமுகமும், நாயை பார்த்து பயந்த புல்லட் பாலுவும் செஞ்ச வேலை பாருங்க!",
+          description: "அலப்பறை ஆறுமுகம் மற்றும் புல்லட் பாலுவின் அதிரடி நகைச்சுவை கலாட்டா!\n\n#HappyKuttuSong #TamilComedy #TamilShorts #AnimationTamil",
+          targetAudience: "Tamil comedy and family audience",
           niche: input.niche,
-          estimatedDuration: isShorts ? 45 : 300,
-          tags: ["HappyKuttuSong", "TamilCartoon", "TamilStoriesForKids", "TamilRhymes", "KidsTamil", "MoralStoriesTamil", "Shorts"],
+          estimatedDuration: isShorts ? 30 : 330,
+          tags: ["HappyKuttuSong", "TamilComedy", "TamilAnimation", "TamilShorts", "KuthuDance"],
         },
         {
-          title: "சிங்கமும் சுண்டெலியும்! 🦁🐭 குட்டுவின் சுட்டி கார்ட்டூன் கதை",
-          hook: "ஒரு பெரிய காட்டில் வாழ்ந்த சிங்கமும் சின்ன எலியும் என்ன ஆச்சு தெரியுமா?",
-          description: "சிங்கமும் சுண்டெலியும் - ஆபத்தில் உதவிய சுண்டெலியின் நன்னெறி கதை.\n\n#HappyKuttuSong #TamilCartoon #TamilStories #Shorts",
-          targetAudience: "Tamil kids and families",
+          title: "சோடா மணி டீக்கடையில் பிரேக்கிங் நியூஸ்! ☕ டென்ஷன் தங்கராசு அலப்பறை",
+          hook: "டீக்கடை சோடா மணியின் 24 மணி நேர பிரேக்கிங் நியூஸும், தங்கராசுவின் உலக அழிவு பயமும்!",
+          description: "சோடா மணி டீக்கடையில் நடக்கும் வினோதமான ஊர் வதந்திகள் மற்றும் டென்ஷன் தங்கராசுவின் பீதி!\n\n#HappyKuttuSong #TamilComedy #TamilCartoon",
+          targetAudience: "Tamil animation and comedy lovers",
           niche: input.niche,
-          estimatedDuration: isShorts ? 45 : 300,
-          tags: ["HappyKuttuSong", "TamilCartoon", "TamilStoriesForKids", "MoralStories", "Shorts"],
+          estimatedDuration: isShorts ? 30 : 330,
+          tags: ["HappyKuttuSong", "TamilComedy", "TamilCartoon", "TamilShorts", "TrendingTamil"],
         },
         {
-          title: "நிலா நிலா ஓடி வா! 🌙 குட்டுவுடன் அழகான தமிழ் பாப்பா பாட்டு",
-          hook: "வானத்தில் இருக்கும் நிலாவை பார்த்து குட்டு என்ன பாடுறான் தெரியுமா?",
-          description: "நிலா நிலா ஓடி வா நில்லாமல் ஓடி வா - குட்டு பாடும் மகிழ்ச்சியான தமிழ் மழலையர் பாடல்.\n\n#HappyKuttuSong #TamilRhymes #KidsTamil #Shorts",
-          targetAudience: "Tamil kids and toddlers",
+          title: "தவுலத் தண்டபாணி 1000 கோடி டீல்! 💸 சோம்பு சுந்தரத்தின் தூக்கம்",
+          hook: "வெறும் பாக்கெட்டில் 1000 கோடி டீல் பேசும் தண்டபாணியும், 10 அடி நடக்க சோம்பேறித்தனப்படும் சுந்தரமும்!",
+          description: "தவுலத் தண்டபாணியின் உலக மகா பிசினஸ் அட்வைஸ் மற்றும் சோம்பு சுந்தரத்தின் அசாத்திய சோம்பல்!\n\n#HappyKuttuSong #TamilComedy #TamilShorts",
+          targetAudience: "Tamil youth and families",
           niche: input.niche,
-          estimatedDuration: isShorts ? 45 : 300,
-          tags: ["HappyKuttuSong", "TamilRhymes", "TamilCartoon", "KidsSongsTamil", "Shorts"],
+          estimatedDuration: isShorts ? 30 : 330,
+          tags: ["HappyKuttuSong", "TamilComedy", "TamilShorts", "TamilAnimation"],
         },
       ];
     }
@@ -346,52 +374,210 @@ function generateFallbackScript(input: ScriptGenerationInput): GeneratedScriptOu
       input.niche.toLowerCase().includes("cartoon") ||
       input.niche.toLowerCase().includes("rhyme")
     ) {
+      if (isShorts) {
+        return {
+          title: input.title,
+          hook: "[ஆறுமுகம்]: டேய் பாலு! இன்டர்நேஷனல் பாஸ் என்ட்ரி ஆகுறேன், வழி விடு!",
+          body: "சீன் செந்தில், அலப்பறை ஆறுமுகம், புல்லட் பாலு மற்றும் டென்ஷன் தங்கராசுவின் அதிரடி காமெடி கலாட்டா! பிடித்திருந்தால் லைக் மற்றும் சப்ஸ்கிரைப் பண்ணுங்க!",
+          callToAction: "மேலும் பல அதிரடி நகைச்சுவை காட்சிகளுக்கு Happy Kuttu Song சேனலை சப்ஸ்கிரைப் பண்ணுங்க!",
+          description: `${input.title}\n\nஅலப்பறை ஆறுமுகம், புல்லட் பாலு மற்றும் சீன் செந்திலின் அதிரடி காமெடி ஷார்ட்ஸ்!\n\n#HappyKuttuSong #TamilComedy #TamilShorts #Animation`,
+          hashtags: ["#HappyKuttuSong", "#TamilComedy", "#TamilShorts", "#Animation"],
+          thumbnailIdeas: [
+            "Text: அலப்பறை ஆறுமுகம் vs புல்லட் பாலு! 🤣 | Visual: Crown vs Sunglasses",
+            "Text: நாய் பயத்தில் பாலு! 🐕 | Visual: Tree climbing panic",
+          ],
+          scenes: [
+            {
+              orderIndex: 0,
+              narration: "[ஆறுமுகம்]: இன்டர்நேஷனல் பாஸ் அலப்பறை ஆறுமுகம் வரேன், எல்லாரும் அட்டென்ஷன்ல நில்லுங்க!",
+              visualPrompt: "[Characters: aarumugam, balu] [Pose: pointing] Soda Mani tea stall background with dramatic entry sparkle",
+              captionText: "இன்டர்நேஷனல் பாஸ் அலப்பறை ஆறுமுகம்!",
+              duration: 6.0,
+            },
+            {
+              orderIndex: 1,
+              narration: "[பாலு]: டேய் ஆறுமுகம்! மாஸ் ஹீரோ புல்லட் பாலு முன்னாடி அலப்பறையா? லெதர் ஜாக்கெட் பவரை காட்டுறேன்!",
+              visualPrompt: "[Characters: balu, aarumugam] [Pose: singing] Hot summer sun with aviator sunglasses and leather jacket swagger",
+              captionText: "மாஸ் ஹீரோ புல்லட் பாலு!",
+              duration: 6.0,
+            },
+            {
+              orderIndex: 2,
+              narration: "[குட்டி நாய்]: வௌ வௌ! [பாலு]: ஐயையோ! நாய் வருது! காப்பாத்துங்கடா! [மரத்தில் ஏறுகிறான்]",
+              visualPrompt: "[Characters: balu, thangarasu] [Pose: surprised] Balu screaming and climbing a lamp post while puppy wags tail",
+              captionText: "ஐயையோ! நாய் வருது! காப்பாத்துங்கடா!",
+              duration: 6.0,
+            },
+            {
+              orderIndex: 3,
+              narration: "[தங்கராசு]: ஐயையோ! தெரு நாய்க்கு இவ்வளவு பீதியா?! பூகம்பம் வந்துருச்சுடா! எல்லாரும் ஓடுங்க!",
+              visualPrompt: "[Characters: thangarasu, aarumugam] [Pose: surprised] Hands on head, steam shooting from ears, panic alert",
+              captionText: "பூகம்பம் வந்துருச்சுடா! ஓடுங்க!",
+              duration: 6.0,
+            },
+            {
+              orderIndex: 4,
+              narration: "[செந்தில்]: என்ட்ரி வேற லெவல்! மறக்காம Happy Kuttu Song சேனலை Subscribe பண்ணுங்க!",
+              visualPrompt: "[Characters: senthil, aarumugam] [Pose: dancing] Hero sunglasses, confetti, subscribe button clicking",
+              captionText: "Subscribe to Happy Kuttu Song! 🎬",
+              duration: 6.0,
+            },
+          ],
+        };
+      }
+
+      // Long-form story with Kuthu dance sequence
       return {
         title: input.title,
-        hook: "வணக்கம் நண்பர்களே! இன்னைக்கு குட்டுவுடன் ஒரு அருமையான கதை கேட்கலாம்!",
-        body: "வணக்கம் நண்பர்களே! இன்னைக்கு நாம் பார்க்கப்போவது ஒரு சுவையான கதை. ஒரு அழகான கிராமத்தில் குட்டு என்ற சுட்டி பையன் இருந்தான். அவன் தினமும் பாடி ஆடி மகிழ்ந்தான். அனைவருக்கும் அன்போடு உதவி செய்து நல்ல நண்பனாக இருந்தான். வீடியோ பிடித்திருந்தால் மறக்காமல் Like மற்றும் Subscribe செய்யுங்கள்!",
-        callToAction: "இந்த வீடியோ பிடித்திருந்தால் உடனே Happy Kuttu Song சேனலுக்கு Subscribe பண்ணுங்க குட்டீஸ்!",
-        description: `${input.title}\n\nகுட்டு வழங்கும் மகிழ்ச்சியான தமிழ் கார்ட்டூன் கதை & பாடல்.\n\n🔔 Subscribe to Happy Kuttu Song for daily cartoon videos!\n\n#HappyKuttuSong #TamilCartoon #TamilStories #KidsTamil #Shorts`,
-        hashtags: ["#HappyKuttuSong", "#TamilCartoon", "#TamilStories", "#KidsTamil", "#Shorts"],
+        hook: "வணக்கம் மக்களே! நம்ம ஊரு டீக்கடையில் இன்னைக்கு அலப்பறை ஆறுமுகமும், புல்லட் பாலுவும் செஞ்ச வேலை என்ன தெரியுமா?",
+        body: "ஊர் டீக்கடையில் நடக்கும் வினோதமான நகைச்சுவை சம்பவங்கள், புல்லட் பாலுவின் நாய் பயம், டென்ஷன் தங்கராசுவின் பீதி, மற்றும் அதிரடி குத்து டான்ஸ் கொண்ட முழு நீள காமெடி வீடியோ!",
+        callToAction: "இந்த முழு வீடியோ உங்களுக்கு பிடித்திருந்தால் மறக்காமல் Like செய்து Happy Kuttu Song சேனலை Subscribe பண்ணுங்க!",
+        description: `${input.title}\n\nநம்ம ஊரு கேங் செந்தில், ஆறுமுகம், பாலு, மணி, சுந்தரம், தங்கராசு, தண்டபாணி எல்லாரும் சேர்ந்து போடும் அதிரடி குத்து ஆட்டம்!\n\n#HappyKuttuSong #TamilComedy #KuthuDance #TamilCartoon`,
+        hashtags: ["#HappyKuttuSong", "#TamilComedy", "#KuthuDance", "#TamilCartoon", "#TamilShorts"],
         thumbnailIdeas: [
-          "Text: குட்டுவின் கதை! | Visual: Smiling cartoon character Kuttu waving with vibrant rainbow",
-          "Text: பாட்டி சுட்ட வடை! | Visual: Kuttu pointing to delicious vadas with sparkles",
+          "Text: டீக்கடை கலாட்டா! ☕🔥 | Visual: Soda Mani pouring tea while gang panics",
+          "Text: வேற லெவல் குத்து ஆட்டம்! ⚡ | Visual: All 16 characters dancing on stage",
         ],
         scenes: [
           {
             orderIndex: 0,
-            narration: "வணக்கம் நண்பர்களே! இன்னைக்கு குட்டுவுடன் ஒரு அருமையான கதை கேட்கலாமா?",
-            visualPrompt: "[Pose: waving] Kuttu waving happily in sunny green meadow with smiling sun and rainbow",
-            captionText: "வணக்கம் நண்பர்களே! 🎈",
-            duration: 6.0,
+            narration: "[செந்தில்]: சீன் செந்தில் என்ட்ரி வேற லெவல்! காத்து அடிக்குது, ஸ்லோ மோஷன்ல வரேன்!",
+            visualPrompt: "[Characters: senthil, govind] [Pose: pointing] Slow motion cinematic mass entry with wind blowing hair",
+            captionText: "சீன் செந்தில் என்ட்ரி வேற லெவல்!",
+            duration: 14.0,
           },
           {
             orderIndex: 1,
-            narration: "ஒரு அழகான கிராமத்தில் பாட்டி ஒருவர் சுடச்சுட வடை சுட்டுக்கொண்டு இருந்தார்.",
-            visualPrompt: "[Pose: pointing] Kuttu pointing excitedly with bright sparkles around",
-            captionText: "பாட்டி சுட்ட வடை! 🌟",
-            duration: 6.0,
+            narration: "[சோடா மணி]: வாங்கப்பா வாங்க! இன்னைக்கு நம்ம ஊர்ல என்ன பிரேக்கிங் நியூஸ் தெரியுமா? ஆறுமுகம் புதுசா அலப்பறை ஆரம்பிச்சிருக்கான்!",
+            visualPrompt: "[Characters: sodamani, velu] [Pose: singing] Soda Mani tea stall with thick glasses and steaming hot cutting chai",
+            captionText: "சோடா மணி டீக்கடை பிரேக்கிங் நியூஸ்!",
+            duration: 15.0,
           },
           {
             orderIndex: 2,
-            narration: "அப்போது அங்கே வந்த ஒரு தந்திர நரி அந்த வடையை எப்படியாவது சாப்பிட நினைத்தது.",
-            visualPrompt: "[Pose: curious] Kuttu thinking with thought bubble and curious face",
-            captionText: "அங்கே வந்த தந்திர நரி! 🦊",
-            duration: 6.0,
+            narration: "[ஆறுமுகம்]: டேய் மணி! எனக்கு ஒரு இன்டர்நேஷனல் டீ போடு! அமெரிக்காவுல நான் எப்படி டீ குடிப்பேன் தெரியுமா?",
+            visualPrompt: "[Characters: aarumugam, dhandapani] [Pose: pointing] Royal purple blazer, crown badge, dramatic boss gestures",
+            captionText: "இன்டர்நேஷனல் டீ போடு மணி!",
+            duration: 15.0,
           },
           {
             orderIndex: 3,
-            narration: "ஆனால் புத்திசாலியான காகம் எச்சரிக்கையாக இருந்து நரியிடம் ஏமாறாமல் தப்பியது!",
-            visualPrompt: "[Pose: dancing] Kuttu dancing joyfully with musical notes and flowers",
-            captionText: "புத்திசாலி காகம்! 🐦",
-            duration: 6.0,
+            narration: "[தண்டபாணி]: கரெக்டா சொன்ன ஆறுமுகம்! நானும் 500 கோடி போர்ட் மீட்டிங் போறேன்... ஆனா மணி, டீக்கு ஒரு 5 ரூவா சில்லறை தருவியா?",
+            visualPrompt: "[Characters: dhandapani, sundaram] [Pose: thinking] Turned inside-out empty wallet showing 0 rupees with royal swagger",
+            captionText: "டீக்கு 5 ரூவா சில்லறை தருவியா?",
+            duration: 15.0,
           },
           {
             orderIndex: 4,
-            narration: "இந்த கதை உங்களுக்கு பிடித்திருந்தால் உடனே Happy Kuttu Song சேனலை Subscribe செய்யுங்கள்!",
-            visualPrompt: "[Pose: singing] Kuttu holding golden microphone singing happily with hearts and stars",
-            captionText: "Subscribe பண்ணுங்க குட்டீஸ்! 🔔",
-            duration: 6.0,
+            narration: "[சுந்தரம்]: 5 ரூவா எடுக்க நான் 10 அடி நடக்கணும்! அதுக்கு பதில் நான் படுத்துக்கிட்டே தூங்குறேன், என்னை எழுப்பாதீங்க!",
+            visualPrompt: "[Characters: sundaram, babu] [Pose: thinking] Sombu water tumbler lying out of reach, pillow, sleepy Zzz bubble",
+            captionText: "என்னை யாரும் எழுப்பாதீங்க... ரெஸ்ட்!",
+            duration: 15.0,
+          },
+          {
+            orderIndex: 5,
+            narration: "[பாலு]: லெதர் ஜாக்கெட் போட்டு மாஸ் ஹீரோவா வந்தா, இந்த சுந்தரம் தூங்குறான்! என் புல்லட் ஸ்பீடு உங்களுக்கு தெரியாது!",
+            visualPrompt: "[Characters: balu, senthil] [Pose: pointing] Aviator sunglasses, sweat pouring down in heat, heavy leather swagger",
+            captionText: "மாஸ் ஹீரோ புல்லட் பாலு என்ட்ரி!",
+            duration: 15.0,
+          },
+          {
+            orderIndex: 6,
+            narration: "[குட்டி நாய்]: லொள் லொள்! [பாலு]: ஐயோ அம்மா! நாய் துரத்துது! மரத்துல ஏறிட்டேன், காப்பாத்துங்கடா!",
+            visualPrompt: "[Characters: balu, thangarasu] [Pose: surprised] Screaming terrified Balu perched on a tree branch",
+            captionText: "ஐயோ அம்மா! நாய் துரத்துது!",
+            duration: 15.0,
+          },
+          {
+            orderIndex: 7,
+            narration: "[தங்கராசு]: நாய் குரைச்சா உலகமே அழியப்போகுதுன்னு அர்த்தம்! பிபி எகிறிடுச்சு! பூமி வெடிக்க போகுது! ஆம்புலன்ஸ் கூப்பிடுங்க!",
+            visualPrompt: "[Characters: thangarasu, mohan] [Pose: surprised] Trembling hands on temples, steam shooting from ears, red alert",
+            captionText: "பிபி 220! பூமி வெடிக்க போகுது!",
+            duration: 15.0,
+          },
+          {
+            orderIndex: 8,
+            narration: "[மோகன்]: மைக் மோகன் ரகசியம் சொல்றேன்! எல்லாரும் பயப்படாதீங்க, அது சின்ன குட்டி நாய் தான்! [ஊரே கேட்கும்படி கத்துகிறான்]",
+            visualPrompt: "[Characters: mohan, pandi] [Pose: singing] Cupped hands around mouth, vibrating sound waves shaking the shops",
+            captionText: "ரகசியம் சொல்றேன்! அது சின்ன நாய் தான்!",
+            duration: 15.0,
+          },
+          {
+            orderIndex: 9,
+            narration: "[பாண்டி]: அட பயத்தை விடுங்கடா! சூடான பரோட்டாவும் சால்னாவும் கிடைச்சா, நான் எந்த ஆபத்துக்கும் ரெடி!",
+            visualPrompt: "[Characters: pandi, anand] [Pose: happy] Round tummy, napkin in collar, daydreaming about hot parotta and salna",
+            captionText: "பரோட்டாவும் சால்னாவும் கிடைச்சா ரெடி!",
+            duration: 15.0,
+          },
+          {
+            orderIndex: 10,
+            narration: "[டான்ஸ் - சீன் செந்தில்]: Scene Senthil slow motion-la vandhan! வேற லெவல் குத்து டான்ஸ் ஆரம்பம்!",
+            visualPrompt: "[Characters: senthil, aarumugam] [Pose: dancing] Stage lights, disco background, slow motion swagger dance, isKuthuDance: true",
+            captionText: "Scene Senthil slow motion-la vandhan!",
+            duration: 7.0,
+          },
+          {
+            orderIndex: 11,
+            narration: "[டான்ஸ் - அலப்பறை ஆறுமுகம்]: Alappara Aarumugam international entry pottan! எல்லாரும் அதிரடியா ஆடுங்க!",
+            visualPrompt: "[Characters: aarumugam, balu] [Pose: dancing] Royal crown sparkles, boss poses, energetic footwork, isKuthuDance: true",
+            captionText: "Alappara Aarumugam international entry pottan!",
+            duration: 7.0,
+          },
+          {
+            orderIndex: 12,
+            narration: "[டான்ஸ் - புல்லட் பாலு & சோடா மணி]: Bullet Balu marathula aadan! Soda Mani tea glass-oda aatam pottan!",
+            visualPrompt: "[Characters: balu, sodamani] [Pose: dancing] Balu swinging from branch, Soda Mani tossing tea glass, isKuthuDance: true",
+            captionText: "Soda Mani tea glass-oda aatam pottan!",
+            duration: 8.0,
+          },
+          {
+            orderIndex: 13,
+            narration: "[டான்ஸ் - சுந்தரம் & தங்கராசு]: Sombu Sundaram rest edukitte aadaan! Tension Thangarasu panic aagi thullinaan!",
+            visualPrompt: "[Characters: sundaram, thangarasu] [Pose: dancing] Sundaram waving arms from floor, Thangarasu jumping in panic, isKuthuDance: true",
+            captionText: "Ellaarum serntha vera level kuthu aaduvoam!",
+            duration: 8.0,
+          },
+          {
+            orderIndex: 14,
+            narration: "[ஆனந்த்]: மாஸ்டர் பிளான் ரெடி! இந்த குத்து டான்ஸ் முடிஞ்சதும் பரோட்டா கடைக்கு போகலாம்!",
+            visualPrompt: "[Characters: anand, ganesan] [Pose: pointing] Anand showing notebook plan, Ganesan flexing gold chains",
+            captionText: "மாஸ்டர் பிளான் ரெடி! பரோட்டா சாப்பிடலாம்!",
+            duration: 15.0,
+          },
+          {
+            orderIndex: 15,
+            narration: "[கணேசன்]: பரோட்டா கடைக்கா? நான் வரேன்... [அம்மா குரல் கேட்கிறது: கணபதி!] ஐயோ அம்மா கூப்பிடுறாங்க! இதோ வரேன்ம்மா!",
+            visualPrompt: "[Characters: ganesan, velu] [Pose: surprised] Tough guy crumbling in fear hearing mother call, running away",
+            captionText: "அம்மா கூப்பிடுறாங்க! இதோ வரேன்ம்மா!",
+            duration: 15.0,
+          },
+          {
+            orderIndex: 16,
+            narration: "[வேலு]: நான் பெஞ்ச்ல உட்கார்ந்து 20 வருஷமா அனுபவத்துல சொல்றேன்... அம்மா பேச்சை கேக்குறவன் என்னைக்குமே கெட்டுப்போக மாட்டான்!",
+            visualPrompt: "[Characters: velu, selvam] [Pose: thinking] Folded arms on cement bench, steel tumbler of tea, wise nod",
+            captionText: "அனுபவத்துல சொல்றேன்... அம்மா பேச்சு கேளுங்க!",
+            duration: 15.0,
+          },
+          {
+            orderIndex: 17,
+            narration: "[செல்வம்]: என்ன ஒரு பாசம்! என்ன ஒரு சென்டிமென்ட்! என் கண்ணீரே நிக்க மாட்டேங்குதுடா! [வானத்தை பார்த்து அழுகிறான்]",
+            visualPrompt: "[Characters: selvam, chandran] [Pose: surprised] Tears pouring, hand on chest, dramatic 80s film background melody",
+            captionText: "என்ன ஒரு பாசம்! என்ன ஒரு சென்டிமென்ட்!",
+            duration: 15.0,
+          },
+          {
+            orderIndex: 18,
+            narration: "[சந்திரன்]: இந்த சென்டிமென்ட் எல்லாம் என் சூப்பர்பைக் மெஷின் முன்னாடி நிக்காது! சைக்கிள்ல எல்லாரும் ஏறுங்க, டூர் போவோம்!",
+            visualPrompt: "[Characters: chandran, senthil] [Pose: pointing] Rusted squeaky bicycle, biker helmet, ringing bell happily",
+            captionText: "என் மெஷின்ல ஏறுங்க, டூர் போவோம்!",
+            duration: 15.0,
+          },
+          {
+            orderIndex: 19,
+            narration: "[அனைவரும்]: இந்த கலாட்டா பிடிச்சிருந்தா உடனே Like பண்ணி, நம்ம Happy Kuttu Song சேனலை Subscribe பண்ணுங்க! அடுத்த வாரம் சந்திப்போம்!",
+            visualPrompt: "[Characters: senthil, aarumugam, balu] [Pose: dancing] All characters celebrating with confetti, big red subscribe bell",
+            captionText: "Like & Subscribe to Happy Kuttu Song! 🎬✨",
+            duration: 15.0,
           },
         ],
       };
