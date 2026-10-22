@@ -189,6 +189,7 @@ export async function uploadVideoToYouTube(params: {
   madeForKids: boolean;
   channelId?: string;
   language?: string;
+  deleteAfterUpload?: boolean;
 }): Promise<{ videoId: string; videoUrl: string }> {
   if (!fs.existsSync(params.videoFilePath)) {
     throw new Error(`Video file not found at path: ${params.videoFilePath}`);
@@ -243,6 +244,18 @@ export async function uploadVideoToYouTube(params: {
         });
       } catch (thumbErr) {
         console.warn("Failed to upload custom thumbnail (channel might lack verified custom thumbnail rights):", thumbErr);
+      }
+    }
+
+    // Automatically delete video file after successful upload to save disk space
+    if (params.deleteAfterUpload !== false) {
+      try {
+        if (fs.existsSync(params.videoFilePath)) {
+          fs.unlinkSync(params.videoFilePath);
+          console.log(`🗑️ [Disk Cleanup] Successfully deleted posted video: ${params.videoFilePath}`);
+        }
+      } catch (delErr: any) {
+        console.warn(`[Disk Cleanup] Notice: Could not delete video file (${delErr.message})`);
       }
     }
 

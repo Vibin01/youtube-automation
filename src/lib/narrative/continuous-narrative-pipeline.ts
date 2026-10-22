@@ -940,6 +940,7 @@ export async function runContinuousNarrativePipeline(
           scheduledPublishTime: mondaySchedule.dateUTC.toISOString(),
           madeForKids: false,
           language: "ta",
+          deleteAfterUpload: false, // keep for Step 8 slicing
         });
 
         masterYouTubeUrl = (uploadRes as any).videoUrl || (uploadRes as any).youtubeUrl;
@@ -1035,6 +1036,7 @@ export async function runContinuousNarrativePipeline(
             privacyStatus,
             madeForKids: false,
             language: "ta",
+            deleteAfterUpload: true, // Auto-delete short file after upload
           });
 
           shortUrl = (shortUpload as any).videoUrl || (shortUpload as any).youtubeUrl;
@@ -1076,6 +1078,21 @@ export async function runContinuousNarrativePipeline(
     // -------------------------------------------------------------------------
     // STEP 9: COMPLETE ZERO-TOUCH AUTOMATION (Final status update & packaging)
     // -------------------------------------------------------------------------
+    // Clean up temporary audio/video working files
+    try {
+      if (fs.existsSync(tempDir)) {
+        fs.rmSync(tempDir, { recursive: true, force: true });
+        console.log(`🧹 [Disk Cleanup] Cleaned up temporary working directory: ${tempDir}`);
+      }
+      // If master video was uploaded to YouTube, delete the local master video file to save disk space
+      if (masterYouTubeUrl && fs.existsSync(masterVideoPath)) {
+        fs.unlinkSync(masterVideoPath);
+        console.log(`🗑️ [Disk Cleanup] Successfully deleted posted master video file: ${masterVideoPath}`);
+      }
+    } catch (cleanErr: any) {
+      console.warn("Disk cleanup notice:", cleanErr.message);
+    }
+
     await prisma.videoProject.update({
       where: { id: project.id },
       data: { status: "RENDERED" },
