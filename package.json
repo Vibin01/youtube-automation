@@ -15,6 +15,11 @@
     "worker:daily:full": "tsx src/worker/daily-scheduler.ts --full",
     "worker:daily:short": "tsx src/worker/daily-scheduler.ts --short",
     "worker:daily:now": "tsx src/worker/daily-scheduler.ts --now",
+    "agent": "tsx src/scripts/run-agent.ts",
+    "agent:gemini": "tsx src/scripts/run-gemini-pipeline.ts",
+    "agent:longform": "tsx src/scripts/run-gemini-pipeline.ts auto \"டீக்கடை மகா பஞ்சாயத்து: ஆனந்த், பாலு & ஆறுமுகம் காமெடி அலப்பறை 🤣🔥\" LONG_FORM public 330",
+    "agent:story": "tsx src/scripts/run-story-agent.ts",
+    "pipeline:narrative": "tsx src/scripts/run-narrative-pipeline.ts",
     "test": "vitest run"
   },
   "dependencies": {
@@ -29,6 +34,7 @@
     "lucide-react": "^1.59.0",
     "next": "16.4.2",
     "prisma": "^6.19.3",
+    "puppeteer-core": "^25.14.0",
     "react": "19.3.0",
     "react-dom": "19.3.0",
     "react-hook-form": "^7.90.0",

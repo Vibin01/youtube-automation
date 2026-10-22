@@ -19,6 +19,7 @@ import {
 
 const NAV_ITEMS = [
   { name: "Dashboard", href: "/", icon: LayoutDashboard },
+  { name: "AI Video Agent", href: "/agent", icon: Bot },
   { name: "Content Ideas", href: "/ideas", icon: Lightbulb },
   { name: "Script Studio", href: "/scripts", icon: FileText },
   { name: "Video Studio", href: "/studio", icon: Film },

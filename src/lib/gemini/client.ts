@@ -7,8 +7,11 @@ import {
   ScriptGenerationInput,
   GeneratedScriptSchema,
   GeneratedScriptOutput,
+  OmniStoryOutput,
+  OmniStoryOutputSchema,
+  OmniStoryScene,
 } from "../validation";
-import { getCastSummaryForPrompt, KUTHU_DANCE_SONG } from "../characters/cast";
+import { getCastSummaryForPrompt, KUTHU_DANCE_SONG, CAST, CharacterDefinition } from "../characters/cast";
 
 /**
  * Returns an instance of GoogleGenAI using the active API key.
@@ -273,6 +276,238 @@ Respond ONLY with a JSON object in this exact schema:
     "generateFullScript"
   );
 }
+
+export interface OmniStoryScriptInput {
+  prompt: string;
+  characters?: string[];
+  sceneCount?: number;
+  targetDurationSec?: number;
+  language?: "Tamil" | "English";
+}
+
+/**
+ * Generates an 8 to 10 scene episodic comedic story using Gemini Omni.
+ * Total duration: 5 to 6 minutes (300 to 360 seconds).
+ * Each scene works as both an episodic chapter in the 5-6m master story
+ * AND a 30-second standalone Short with its own hook for morning/evening posting.
+ */
+export async function generateGeminiOmniStoryScript(
+  input: OmniStoryScriptInput
+): Promise<OmniStoryOutput> {
+  const { client, model, hasKey } = await getGeminiClient();
+  const sceneCount = Math.max(8, Math.min(10, input.sceneCount || 8));
+  const targetDurationSec = input.targetDurationSec || 330;
+  const perSceneDuration = Math.round(targetDurationSec / sceneCount); // ~35-41 sec
+
+  // Resolve starring characters from input
+  const allCastSummary = getCastSummaryForPrompt();
+  const requestedChars = (input.characters || []).map((c) => c.toLowerCase().trim());
+  const selectedChars = CAST.filter(
+    (c) =>
+      requestedChars.some((req) => c.id.toLowerCase() === req || c.name.toLowerCase().includes(req))
+  );
+
+  const starringChars = selectedChars.length > 0 ? selectedChars : [CAST[10], CAST[3], CAST[4]]; // Anand, Balu, Sodamani default
+  const starringSummary = starringChars
+    .map((c) => `- ${c.name} (${c.nickname}): ${c.personality} Signature catchphrase: "${c.catchphrase}"`)
+    .join("\n");
+
+  if (!hasKey || !client) {
+    return generateFallbackOmniStoryScript(input, starringChars, sceneCount, targetDurationSec);
+  }
+
+  const prompt = `You are a master Tamil comedy animation screenwriter and Gemini Omni director for "Happy Kuttu Song".
+Write an 8 to 10 scene episodic story screenplay that joins together into a continuous 5 to 6 minute master animated comedy video.
+
+EPISODE PREMISE / USER PROMPT:
+"${input.prompt}"
+
+LEAD CHARACTERS CHOSEN FOR THIS STORY (Must be the central stars):
+${starringSummary}
+
+SUPPORTING CAST FROM OUR PERMANENT 16 VILLAGE CHARACTERS:
+${allCastSummary}
+
+REQUIREMENTS:
+1. Exactly ${sceneCount} distinct scenes (0 to ${sceneCount - 1}).
+2. Total runtime across all scenes must equal ~${targetDurationSec} seconds (each scene ~${perSceneDuration} seconds, 30 to 42s).
+3. DUAL-PURPOSE SCENE ARCHITECTURE:
+   - Each scene MUST be an engaging chapter in the continuous 5 to 6 minute master story.
+   - ALSO, each scene's first 30 seconds MUST work as an independent, high-retention YouTube Short for our Morning & Evening posting schedule!
+4. DIALOGUE & LANGUAGE:
+   - Authentic, hilarious, punchy spoken Tamil script (Edge-TTS compatible).
+   - Format dialogue clearly: [ஆனந்த்]: "டேய் மணி, இந்த டீ மெஷின் ஃபார்முலா இன்டர்நேஷனல் ரகசியம்!"
+   - Fast comedy timing, witty punchlines, and signature catchphrases.
+5. VISUAL INSTRUCTIONS ("visualPrompt"):
+   - Explicitly specify character turnaround directives: "[Characters: anand, sodamani] [Pose: pointing/arguing/laughing]".
+   - Include dynamic 3D cartoon camera directions: "smooth camera pan, dramatic zoom, vibrant village tea stall background with coconut trees".
+6. "captionText": Punchy 3 to 6 words Tamil subtitle for on-screen dialogue bubble.
+7. "shortsHook": A catchy, viral title for when this scene is sliced into a 30-second Short (e.g. "ஆனந்தின் AI டீ கடை கலாட்டா! 😂 Part 1 #Shorts").
+
+Respond ONLY with a valid JSON object matching this schema:
+{
+  "title": "Hilarious Tamil Comedy Title (e.g. ஆனந்தின் அதிநவீன AI டீக்கடை கலாட்டா!)",
+  "hook": "Unforgettable opening hook line in Tamil",
+  "synopsis": "Overview of the 5-6 minute master story episode",
+  "description": "YouTube description with timestamps, moral/comedy takeaways, and subscribe CTA",
+  "hashtags": ["#HappyKuttuSong", "#TamilComedy", "#TamilAnimation", "#TamilShorts", "#Shorts"],
+  "thumbnailIdeas": [
+    "Bold Tamil Text + Shocked Anand holding glowing teapot while Soda Mani drops tea glass",
+    "Split Screen: Anand's futuristic machine vs Soda Mani's classic village tea stall"
+  ],
+  "scenes": [
+    {
+      "orderIndex": 0,
+      "sceneTitle": "Scene 1: The High-Tech Entry",
+      "narration": "[ஆனந்த்]: டேய் சோடா மணி! இனிமே உன் பழைய டீக்கடை செல்லாது, நம்ம ரோபோ டீ மிஷின் வந்தாச்சு!",
+      "visualPrompt": "[Characters: anand, sodamani] [Pose: pointing] Anand standing proudly pointing at high-tech machine, Soda Mani watching with thick glasses. 3D cartoon village street",
+      "captionText": "ஆனந்தின் புது ரோபோ டீக்கடை!",
+      "duration": ${perSceneDuration},
+      "shortsHook": "Part 1: ஆனந்தின் மாஸ் என்ட்ரி! 😂 #Shorts",
+      "characters": ["anand", "sodamani"]
+    }
+  ]
+}`;
+
+  return executeWithGeminiModelFallback<OmniStoryOutput>(
+    client,
+    model || "gemini-3.8-flash",
+    prompt,
+    (parsed) => {
+      const v = OmniStoryOutputSchema.safeParse(parsed);
+      return v.success ? { success: true, data: v.data } : { success: false, error: v.error };
+    },
+    () => generateFallbackOmniStoryScript(input, starringChars, sceneCount, targetDurationSec),
+    "generateGeminiOmniStoryScript"
+  );
+}
+
+/**
+ * Built-in 8 to 10 scene comedy screenplay generator featuring the chosen characters.
+ */
+function generateFallbackOmniStoryScript(
+  input: OmniStoryScriptInput,
+  starringChars: CharacterDefinition[],
+  sceneCount: number,
+  targetDurationSec: number
+): OmniStoryOutput {
+  const lead1 = starringChars[0] || CAST[10]; // Anand
+  const lead2 = starringChars[1] || CAST[3]; // Balu
+  const lead3 = starringChars[2] || CAST[4]; // Sodamani
+
+  const perSceneDuration = Math.round(targetDurationSec / sceneCount);
+  const title = `${lead1.name} & ${lead2.name} அதிரடி கலாட்டா! 🤣🔥 5-Minute Master Episode`;
+
+  const fallbackScenesData = [
+    {
+      title: "The Grand Plan",
+      tamilDialogue: `[${lead1.name}]: "டேய் ${lead2.name}, நம்ம இந்த ஊர்லயே யாரும் பண்ணாத புது விஷயம் பண்ண போறோம்! ஐடியா எப்படி?!" [${lead2.name}]: "சூப்பர் தல! ஆனா நாய் ஏதாச்சும் குறுக்க வருமா?!"`,
+      pose: "pointing",
+      chars: [lead1.id, lead2.id],
+      hook: `Part 1: ${lead1.name} மாஸ் என்ட்ரி! 😂 #Shorts`,
+      caption: `${lead1.name} மாஸ் திட்டம்!`,
+    },
+    {
+      title: "Soda Mani's Tea Stall Gossip",
+      tamilDialogue: `[சோடா மணி]: "பிரேக்கிங் நியூஸ்! ஊருக்குள்ள ${lead1.name} புதுசா ஏதோ வில்லத்தனம் பண்றாரு! என் கண்ணாடி சாட்சியா இந்த நியூஸ் உண்மை!"`,
+      pose: "talking",
+      chars: ["sodamani", lead1.id],
+      hook: "Part 2: சோடா மணி டீக்கடை பிரேக்கிங் நியூஸ்! ☕ #Shorts",
+      caption: "டீக்கடை பிரேக்கிங் நியூஸ்!",
+    },
+    {
+      title: "Alappara Aarumugam's Foreign Advice",
+      tamilDialogue: `[ஆறுமுகம்]: "தம்பி ${lead1.name}, இதெல்லாம் துபாய்ல நான் இருபது வருஷத்துக்கு முன்னாடியே பண்ணிட்டேன்! இன்டர்நேஷனல் லெவல்ல யோசிக்கணும் புரோ!"`,
+      pose: "boasting",
+      chars: ["aarumugam", lead1.id],
+      hook: "Part 3: அலப்பறை ஆறுமுகத்தின் ஃபாரின் அட்வைஸ்! ✈️ #Shorts",
+      caption: "இன்டர்நேஷனல் ஸ்டாண்டர்ட்!",
+    },
+    {
+      title: "Tension Thangarasu Panics",
+      tamilDialogue: `[தங்கராசு]: "ஐயோ போச்சு! ஊரே தீப்பிடிக்க போகுது! பூமி ரெண்டா உடைய போகுது! எல்லாரும் ஓடுங்க ஓடுங்க!" [${lead2.name}]: "டேய் இருடா, இன்னும் ஆரம்பிக்கவே இல்ல!"`,
+      pose: "panicking",
+      chars: ["thangarasu", lead2.id],
+      hook: "Part 4: டென்ஷன் தங்கராசுவின் பீதி அலப்பறை! 😱 #Shorts",
+      caption: "பூமி அழிய போகுது!",
+    },
+    {
+      title: "Sombu Sundaram Refuses to Move",
+      tamilDialogue: `[சுந்தரம்]: "நான் வரணும்னா ஒரு பதினைந்து காரணம் இருக்கு வராதிருக்க! படுத்துட்டே இந்த கலாட்டாவை ரசிக்கிறேன்ப்பா, எழுப்பாதீங்க!"`,
+      pose: "sleeping",
+      chars: ["sundaram", lead1.id],
+      hook: "Part 5: சோம்பு சுந்தரத்தின் 15 காரணங்கள்! 😴 #Shorts",
+      caption: "தூங்க விடுங்கப்பா!",
+    },
+    {
+      title: "Scene Senthil Cinematic Entry",
+      tamilDialogue: `[செந்தில்]: "என்ட்ரி வேற லெவல்! காத்து எப்படி வீசுது பாத்தீங்களா?! இப்போ தான் மெயின் பிக்சர் ஸ்டார்ட் ஆகுது!"`,
+      pose: "heroic_entry",
+      chars: ["senthil", lead2.id],
+      hook: "Part 6: சீன் செந்திலின் மாஸ் ஸ்லோமோஷன் என்ட்ரி! 🎬 #Shorts",
+      caption: "என்ட்ரி வேற லெவல்!",
+    },
+    {
+      title: "High-Energy Kuthu Celebration",
+      tamilDialogue: `[அனைவரும்]: "ஏய் குத்து டான்ஸ் போடு! தகிட தகிட தகிட தோம்! ஊரே கொண்டாடும் மாஸ் டான்ஸ் ஆரம்பம்!"`,
+      pose: "dancing",
+      chars: [lead1.id, lead2.id, "senthil", "aarumugam"],
+      hook: "Part 7: ஊரே கொண்டாடும் மாஸ் குத்து டான்ஸ்! 💃🔥 #Shorts",
+      caption: "மாஸ் குத்து டான்ஸ்!",
+    },
+    {
+      title: "Hilarious Climax & Subscribe CTA",
+      tamilDialogue: `[${lead1.name}]: "திட்டம் சூப்பரா முடிஞ்சுது! நம்ம ஊரு ஆட்களோட கலாட்டா இன்னும் தொடரும்! மறக்காம Subscribe பண்ணுங்க மக்களே!"`,
+      pose: "celebrating",
+      chars: [lead1.id, lead2.id, "sodamani"],
+      hook: "Part 8: மரண காமெடி க்ளைமாக்ஸ்! 🤣🏁 #Shorts",
+      caption: "Subscribe செய்யுங்கள்!",
+    },
+    {
+      title: "Dowlath Dhandapani Royal Advice",
+      tamilDialogue: `[தண்டபாணி]: "பத்து கோடி டீல் நான் பேசி முடிச்சிட்டேன் தம்பி! ஆனா இப்போதைக்கு ஒரு கட்டிங் டீக்கு காசு குடுத்தா நல்லா இருக்கும்!"`,
+      pose: "royal",
+      chars: ["dhandapani", lead1.id],
+      hook: "Part 9: தௌலத் தண்டபாணியின் 10 கோடி டீல்! 💰 #Shorts",
+      caption: "பத்து கோடி டீல்!",
+    },
+    {
+      title: "Grand Village Grand Finale",
+      tamilDialogue: `[அனைவரும்]: "நம்ம ஹாப்பி குத்து சாங் குடும்பத்துல இணைஞ்சதுக்கு நன்றி! அடுத்த எபிசோட்ல இன்னும் பெரிய கலாட்டாவோட வரோம்!"`,
+      pose: "group_wave",
+      chars: [lead1.id, lead2.id, "senthil", "thangarasu"],
+      hook: "Part 10: இறுதி கலாட்டா & நன்றி! 🎉 #Shorts",
+      caption: "அடுத்த எபிசோடில் சந்திப்போம்!",
+    },
+  ];
+
+  const selectedScenes = fallbackScenesData.slice(0, sceneCount);
+
+  const scenes: OmniStoryScene[] = selectedScenes.map((s, idx) => ({
+    orderIndex: idx,
+    sceneTitle: s.title,
+    narration: s.tamilDialogue,
+    visualPrompt: `[Characters: ${s.chars.join(", ")}] [Pose: ${s.pose}] 3D cartoon animation, vivid dynamic character motions, turntable perspective shifts, colorful Tamil village backdrop with cinematic lighting`,
+    captionText: s.caption,
+    duration: perSceneDuration,
+    shortsHook: s.hook,
+    characters: s.chars,
+  }));
+
+  return {
+    title,
+    hook: `${lead1.name} மற்றும் ${lead2.name} இணைந்து செய்த அதிரடி கலாட்டா!`,
+    synopsis: `${input.prompt || "Anand and Balu comedy adventure"}. A 5 to 6 minute continuous comedy episode featuring the Happy Kuttu Song cast.`,
+    description: `${title}\n\n${lead1.name} மற்றும் ${lead2.name} நடத்தும் அதிரடி நகைச்சுவை கலாட்டா!\n\n🔔 Subscribe to Happy Kuttu Song for daily animated comedy shorts and weekly 5-minute episodes!\n\n#HappyKuttuSong #TamilComedy #TamilShorts #Animation`,
+    hashtags: ["#HappyKuttuSong", "#TamilComedy", "#TamilAnimation", "#TamilShorts", "#Shorts"],
+    thumbnailIdeas: [
+      `Shocked ${lead1.name} and ${lead2.name} posing with hilarious comic title`,
+      `Mass village crowd celebrating with colorful comedy banner`,
+    ],
+    scenes,
+  };
+}
+
 
 /**
  * Fallback ideas generator when API key is missing or quota is restricted.

@@ -103,6 +103,37 @@ export const SettingsUpdateSchema = z.object({
   autoPublish: z.boolean().default(false),
   defaultVisibility: z.enum(["private", "unlisted", "public"]).default("private"),
   maxRetries: z.number().int().min(0).max(10).default(3),
+  aiVideoProvider: z.enum(["gemini_browser", "replicate", "luma", "fal", "procedural", "auto"]).default("auto"),
+  replicateApiToken: z.string().optional(),
+  replicateModel: z.string().default("minimax/video-01"),
+  lumaApiKey: z.string().optional(),
+  falApiKey: z.string().optional(),
 });
 
 export type SettingsUpdateInput = z.infer<typeof SettingsUpdateSchema>;
+
+export const OmniStorySceneSchema = z.object({
+  orderIndex: z.number().int().nonnegative(),
+  sceneTitle: z.string().min(1),
+  narration: z.string().min(1),
+  visualPrompt: z.string().min(1),
+  captionText: z.string().default(""),
+  duration: z.number().positive().default(35),
+  shortsHook: z.string().default(""),
+  characters: z.array(z.string()).default([]),
+});
+
+export type OmniStoryScene = z.infer<typeof OmniStorySceneSchema>;
+
+export const OmniStoryOutputSchema = z.object({
+  title: z.string().min(3),
+  hook: z.string().min(3),
+  synopsis: z.string().min(10),
+  description: z.string().min(10),
+  hashtags: z.array(z.string()),
+  thumbnailIdeas: z.array(z.string()),
+  scenes: z.array(OmniStorySceneSchema),
+});
+
+export type OmniStoryOutput = z.infer<typeof OmniStoryOutputSchema>;
+

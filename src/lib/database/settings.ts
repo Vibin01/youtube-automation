@@ -13,6 +13,11 @@ export interface SystemSettings {
   autoPublish: boolean;
   defaultVisibility: "private" | "unlisted" | "public";
   maxRetries: number;
+  aiVideoProvider: "gemini_browser" | "replicate" | "luma" | "fal" | "procedural" | "auto";
+  replicateApiToken: string;
+  replicateModel: string;
+  lumaApiKey: string;
+  falApiKey: string;
 }
 
 export async function getAppSettings(): Promise<SystemSettings> {
@@ -36,6 +41,11 @@ export async function getAppSettings(): Promise<SystemSettings> {
         autoPublish: false,
         defaultVisibility: "private",
         maxRetries: 3,
+        aiVideoProvider: (process.env.AI_VIDEO_PROVIDER as any) || "procedural",
+        replicateApiToken: process.env.REPLICATE_API_TOKEN || "",
+        replicateModel: process.env.REPLICATE_MODEL || "minimax/video-01",
+        lumaApiKey: process.env.LUMA_API_KEY || "",
+        falApiKey: process.env.FAL_KEY || "",
       },
     });
   }
@@ -54,6 +64,11 @@ export async function getAppSettings(): Promise<SystemSettings> {
     autoPublish: settings.autoPublish,
     defaultVisibility: (settings.defaultVisibility as "private" | "unlisted" | "public") || "private",
     maxRetries: settings.maxRetries ?? 3,
+    aiVideoProvider: ((settings as any).aiVideoProvider || process.env.AI_VIDEO_PROVIDER || "procedural") as any,
+    replicateApiToken: (settings as any).replicateApiToken || process.env.REPLICATE_API_TOKEN || "",
+    replicateModel: (settings as any).replicateModel || process.env.REPLICATE_MODEL || "minimax/video-01",
+    lumaApiKey: (settings as any).lumaApiKey || process.env.LUMA_API_KEY || "",
+    falApiKey: (settings as any).falApiKey || process.env.FAL_KEY || "",
   };
 }
 

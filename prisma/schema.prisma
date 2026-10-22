@@ -21,6 +21,11 @@ model AppSettings {
   autoPublish        Boolean  @default(false)
   defaultVisibility  String   @default("private")
   maxRetries         Int      @default(3)
+  aiVideoProvider    String   @default("auto")
+  replicateApiToken  String?
+  replicateModel     String   @default("minimax/video-01")
+  lumaApiKey         String?
+  falApiKey          String?
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt
 }
@@ -114,6 +119,7 @@ model Scene {
   duration       Float        @default(5.0)
   transition     String       @default("fade")
   captionText    String?
+  videoClipPath  String?
   status         String       @default("PENDING") // PENDING, READY, ERROR
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt

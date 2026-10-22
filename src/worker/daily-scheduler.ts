@@ -47,9 +47,9 @@ interface NextTriggerInfo {
  * Calculates the next trigger time for either the Morning slot (10:10 - 11:00 AM IST)
  * or the Evening slot (4:00 - 5:00 PM IST).
  *
- * Weekly Full Video Day: Sunday (day 0 in getDay()).
+ * Weekly Full Video Day: Monday (day 1 in getDay()).
  */
-export function getNextTriggerInfo(weeklyDay = 0): NextTriggerInfo {
+export function getNextTriggerInfo(weeklyDay = 1): NextTriggerInfo {
   const nowIST = getISTDate();
   const currentMinutes = nowIST.getHours() * 60 + nowIST.getMinutes();
 
@@ -250,7 +250,7 @@ export async function runShortPublishing(themeType: "MORNING_STORY_HIGHLIGHT" | 
 export async function startMultiSlotScheduler(): Promise<void> {
   console.log("================================================================");
   console.log("🌟 AUTO-TUBE AI: Autonomous Dual-Slot Tamil Cartoon Scheduler");
-  console.log("📅 Slot 1 (Morning): 10:10 AM – 11:00 AM IST (Weekly 5-6m Story on Sunday / 30s Short Mon-Sat)");
+  console.log("📅 Slot 1 (Morning): 10:10 AM – 11:00 AM IST (Weekly 5-6m Story on Monday / 30s Short Tue-Sun)");
   console.log("📅 Slot 2 (Evening): 4:00 PM – 5:00 PM IST (Daily 30s Dance Short)");
   console.log("🔓 Privacy Visibility: PUBLIC");
   console.log("🎭 Character: Kuttu (Animated Tamil Cartoon)");

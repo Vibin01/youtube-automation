@@ -6,6 +6,7 @@ import { getAppSettings } from "../database/settings";
 import { getFFmpegPath } from "./ffmpeg-bin";
 import { synthesizeSpeech } from "./tts";
 import { generateSceneImage, generateThumbnail } from "./visuals";
+import { generateVideoFromPrompt, detectCharactersInPrompt } from "./ai-video-generator";
 
 export interface RenderProgressCallback {
   (percentage: number, statusMessage: string): void;
@@ -44,7 +45,11 @@ function runFFmpeg(args: string[]): Promise<void> {
  */
 export async function renderVideoProject(
   projectId: string,
-  onProgress?: RenderProgressCallback
+  onProgress?: RenderProgressCallback,
+  options?: {
+    providerOverride?: "gemini_browser" | "gemini" | "replicate" | "luma" | "fal" | "procedural" | "auto";
+    characterId?: string;
+  }
 ): Promise<{
   renderId: string;
   outputPath: string;
@@ -129,86 +134,60 @@ export async function renderVideoProject(
       });
     }
 
-    // 2. Visual generation
-    let imagePath = scene.imagePath;
-    if (!imagePath || !fs.existsSync(imagePath)) {
-      imagePath = path.join(tempDir, `scene_${i}.png`);
-      await generateSceneImage({
-        outputPath: imagePath,
-        orderIndex: scene.orderIndex,
-        totalScenes,
-        narration: scene.narration,
-        visualPrompt: scene.visualPrompt || undefined,
-        captionText: scene.captionText || undefined,
+    // 2. Prompt-based Animated Video Clip Generation (NO STATIC IMAGES)
+    let videoClipPath = (scene as any).videoClipPath;
+    if (!videoClipPath || !fs.existsSync(videoClipPath)) {
+      videoClipPath = path.join(tempDir, `clip_${i}.mp4`);
+      onProgress?.(
+        progressPercent,
+        `Generating AI animation video clip for scene ${i + 1} from prompt...`
+      );
+
+      const sceneChars = detectCharactersInPrompt(scene.visualPrompt || scene.narration);
+      const sceneCharId = (options?.characterId && options.characterId !== "auto")
+        ? options.characterId
+        : (sceneChars[0]?.id || "aarumugam");
+
+      const genRes = await generateVideoFromPrompt({
+        prompt: scene.visualPrompt || scene.narration,
+        outputPath: videoClipPath,
+        durationSec: sceneDuration,
         format: project.format as "SHORTS" | "LONG_FORM",
-        language: project.language as "English" | "Tamil",
-        style: project.language === "Tamil" ? "cartoon" : "gradient",
+        captionText: scene.captionText || undefined,
+        providerOverride: options?.providerOverride,
+        characterId: sceneCharId,
       });
 
+      videoClipPath = genRes.videoClipPath;
       await prisma.scene.update({
         where: { id: scene.id },
-        data: { imagePath },
+        data: { videoClipPath },
       });
     }
 
-    // 3. Render scene segment with camera motion
+    // 3. Merge scene animation video with synchronized TTS audio
     const segmentPath = path.join(segmentsDir, `segment_${i}.mp4`);
-    const fps = 25;
-    const frames = Math.max(25, Math.round(sceneDuration * fps));
-    const width = isShorts ? 1080 : 1920;
-    const height = isShorts ? 1920 : 1080;
-
-    try {
-      // Animated camera motion (gentle zoom in) for engaging cartoon animation
-      await runFFmpeg([
-        "-y",
-        "-loop",
-        "1",
-        "-i",
-        imagePath,
-        "-i",
-        audioPath,
-        "-vf",
-        `zoompan=z='min(zoom+0.0008,1.08)':x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':d=${frames}:s=${width}x${height}:fps=${fps}`,
-        "-c:v",
-        "libx264",
-        "-c:a",
-        "aac",
-        "-b:a",
-        "192k",
-        "-pix_fmt",
-        "yuv420p",
-        "-shortest",
-        "-t",
-        sceneDuration.toFixed(2),
-        segmentPath,
-      ]);
-    } catch {
-      // Fallback to static stillimage if zoompan is unsupported
-      await runFFmpeg([
-        "-y",
-        "-loop",
-        "1",
-        "-i",
-        imagePath,
-        "-i",
-        audioPath,
-        "-c:v",
-        "libx264",
-        "-tune",
-        "stillimage",
-        "-c:a",
-        "aac",
-        "-b:a",
-        "192k",
-        "-pix_fmt",
-        "yuv420p",
-        "-shortest",
-        "-t",
-        sceneDuration.toFixed(2),
-        segmentPath,
-      ]);
-    }
+    await runFFmpeg([
+      "-y",
+      "-stream_loop",
+      "-1",
+      "-i",
+      videoClipPath,
+      "-i",
+      audioPath,
+      "-c:v",
+      "libx264",
+      "-c:a",
+      "aac",
+      "-b:a",
+      "192k",
+      "-pix_fmt",
+      "yuv420p",
+      "-shortest",
+      "-t",
+      sceneDuration.toFixed(2),
+      segmentPath,
+    ]);
 
     segmentFiles.push(segmentPath);
     totalDuration += sceneDuration;

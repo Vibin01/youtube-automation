@@ -188,6 +188,7 @@ export async function uploadVideoToYouTube(params: {
   scheduledPublishTime?: Date | string;
   madeForKids: boolean;
   channelId?: string;
+  language?: string;
 }): Promise<{ videoId: string; videoUrl: string }> {
   if (!fs.existsSync(params.videoFilePath)) {
     throw new Error(`Video file not found at path: ${params.videoFilePath}`);
