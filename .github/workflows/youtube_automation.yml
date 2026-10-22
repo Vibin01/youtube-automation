@@ -15,6 +15,7 @@ on:
         type: choice
         options:
           - 'auto'
+          - 'narrative_pipeline'
           - 'full_story'
           - 'short'
 
@@ -70,7 +71,9 @@ jobs:
           DATABASE_URL: "file:./dev.db"
           OUTPUT_DIR: "./output"
         run: |
-          if [ "${{ github.event.inputs.mode }}" = "full_story" ]; then
+          if [ "${{ github.event.inputs.mode }}" = "narrative_pipeline" ]; then
+            npm run pipeline:narrative
+          elif [ "${{ github.event.inputs.mode }}" = "full_story" ]; then
             npm run worker:daily:full
           elif [ "${{ github.event.inputs.mode }}" = "short" ]; then
             npm run worker:daily:short
