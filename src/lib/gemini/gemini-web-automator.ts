@@ -156,7 +156,7 @@ export async function ensureGeminiTab(
 export async function generateGeminiWebVideoClip(
   options: GeminiAutomationOptions
 ): Promise<GeminiGenerationResult> {
-  const { imagePath, prompt, outputPath, aspectRatio = "9:16", timeoutMs = 180000, onProgress } = options;
+  const { imagePath, prompt, outputPath, aspectRatio = "9:16", timeoutMs = 600000, onProgress } = options;
 
   if (!fs.existsSync(imagePath)) {
     throw new Error(`Character image not found at: ${imagePath}`);
@@ -282,13 +282,36 @@ export async function generateGeminiWebVideoClip(
   }
 
   // 4. Wait for generation to complete and capture video output
-  onProgress?.("Waiting for Gemini to finish generating the video clip (this takes 30-90s)...");
+  onProgress?.("Waiting for Gemini to finish generating the video clip (this takes 2-5 minutes)...");
 
   const startTime = Date.now();
   let videoFound = false;
+  let lastReportTime = startTime;
 
   while (Date.now() - startTime < timeoutMs) {
-    await new Promise((r) => setTimeout(r, 3000));
+    await new Promise((r) => setTimeout(r, 4000));
+
+    const elapsedSec = Math.round((Date.now() - startTime) / 1000);
+    if (Date.now() - lastReportTime > 15000) {
+      lastReportTime = Date.now();
+      onProgress?.(`Gemini video model is actively rendering clip... (${elapsedSec}s elapsed)`);
+    }
+
+    // Check for Quota / Limit messages in Gemini response
+    const limitError = await page.evaluate(() => {
+      const text = (document.body.innerText || "").toLowerCase();
+      if (text.includes("video generation limit reached")) {
+        return "Gemini Video Generation Limit Reached! Free daily video quota on this Google account has been exhausted.";
+      }
+      if (text.includes("usage limit exceeded")) {
+        return "Gemini Usage Limit Exceeded! Please wait or use another account.";
+      }
+      return null;
+    });
+
+    if (limitError) {
+      throw new Error(limitError);
+    }
 
     // Check if a <video> element exists
     const videoData = await page.evaluate(async () => {
@@ -314,9 +337,9 @@ export async function generateGeminiWebVideoClip(
         }
       }
 
-      // Also check for download button
-      const downloadBtn = Array.from(document.querySelectorAll("a[download], button[aria-label*='Download']")).find(
-        (el) => (el as HTMLAnchorElement).href?.includes(".mp4") || el.getAttribute("aria-label")?.includes("video")
+      // Also check for download buttons or video links
+      const downloadBtn = Array.from(document.querySelectorAll("a[download], button[aria-label*='Download'], a[href*='.mp4']")).find(
+        (el) => (el as HTMLAnchorElement).href?.includes(".mp4") || el.getAttribute("aria-label")?.toLowerCase().includes("video")
       );
       if (downloadBtn) {
         const href = (downloadBtn as HTMLAnchorElement).href;
@@ -343,15 +366,16 @@ export async function generateGeminiWebVideoClip(
       break;
     }
 
-    // Check if generation finished with an image instead
+    // Check if generation is still in progress (thinking overlay, stop button, or spinners)
     const isGenerating = await page.evaluate(() => {
       const stopBtn = document.querySelector('button[aria-label*="Stop"]');
-      const spinner = document.querySelector(".mat-mdc-progress-spinner, mat-spinner");
-      return !!stopBtn || !!spinner;
+      const spinner = document.querySelector(".mat-mdc-progress-spinner, mat-spinner, [role='progressbar']");
+      const thinking = document.querySelector("thinking-overlay, thinking-dots-animation, .thinking-dots-animation");
+      return !!stopBtn || !!spinner || !!thinking;
     });
 
-    if (!isGenerating && Date.now() - startTime > 20000) {
-      // Check if image card was generated
+    if (!isGenerating && Date.now() - startTime > 25000) {
+      // Check if image card was generated instead
       const generatedImg = await page.evaluate(async () => {
         const imgs = Array.from(document.querySelectorAll("img")).filter(
           (img) => img.src && img.src.includes("googleusercontent.com") && img.width > 200
@@ -406,5 +430,5 @@ export async function generateGeminiWebVideoClip(
     };
   }
 
-  throw new Error("Gemini video generation timed out or video element not captured.");
+  throw new Error(`Gemini video generation timed out after ${Math.round(timeoutMs / 60000)} minutes.`);
 }

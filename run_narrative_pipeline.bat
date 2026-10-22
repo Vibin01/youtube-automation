@@ -11,5 +11,20 @@ echo   7. Monday Long-Form Publishing Schedule
 echo   8. Automated Shorts Repurposing (Twice Daily: 10 AM ^& 5 PM)
 echo   9. Complete Zero-Touch Autonomous Execution
 echo ==================================================================
-npm run pipeline:narrative %*
-pause
+call npm run pipeline:narrative -- %*
+if errorlevel 1 (
+  echo.
+  echo ==================================================================
+  echo  [ERROR] Pipeline encountered an error or stopped!
+  echo  Review the error logs above. Window will stay open for inspection.
+  echo ==================================================================
+) else (
+  echo.
+  echo ==================================================================
+  echo  [SUCCESS] 9-Step Continuous Narrative Pipeline completed!
+  echo ==================================================================
+)
+echo.
+echo Press any key to exit this window...
+pause >nul
+
