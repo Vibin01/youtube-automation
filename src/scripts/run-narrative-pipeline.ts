@@ -37,7 +37,7 @@ async function main() {
   let targetSceneCount: number | undefined = undefined;
   let privacyStatus: "public" | "unlisted" | "private" = "public";
   let autoPublish = true;
-  let videoProviderOverride: any = undefined;
+  let videoProviderOverride: any = "gemini_browser";
 
   for (let i = 0; i < args.length; i++) {
     const arg = args[i];

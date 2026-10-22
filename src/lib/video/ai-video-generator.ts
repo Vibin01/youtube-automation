@@ -578,8 +578,8 @@ export async function generateVideoFromPrompt(options: VideoClipOptions): Promis
 
   fs.mkdirSync(path.dirname(outputPath), { recursive: true });
 
-  // 1. Try Gemini Browser Automation (gemini_browser or auto with browser)
-  if (chosenProvider === "gemini_browser") {
+  // 1. Try Gemini Browser Automation (Gemini Omni Web Automator Agent)
+  if (chosenProvider === "gemini_browser" || chosenProvider === "gemini" || chosenProvider === "auto") {
     try {
       const chars = detectCharactersInPrompt(options.prompt);
       const charId = options.characterId || chars[0]?.id || "aarumugam";
@@ -589,25 +589,32 @@ export async function generateVideoFromPrompt(options: VideoClipOptions): Promis
       const imagePath = fs.existsSync(charImg) ? charImg : fallbackImg;
 
       if (fs.existsSync(imagePath)) {
-        console.log(`🌐 [Gemini Browser Automator] Sending character '${charId}' and prompt to Gemini web...`);
+        console.log(`🌐 [Gemini Omni Video Agent] Sending character '${charId}' and prompt to Gemini web...`);
         const { generateGeminiWebVideoClip } = await import("../gemini/gemini-web-automator");
         const res = await generateGeminiWebVideoClip({
           imagePath,
           prompt: options.prompt,
           outputPath,
           aspectRatio: format === "SHORTS" ? "9:16" : "16:9",
-          onProgress: (m) => console.log(`   [Gemini Web] ${m}`),
+          onProgress: (m) => console.log(`   [Gemini Omni] ${m}`),
         });
         if (res.success && fs.existsSync(outputPath)) {
-          return { videoClipPath: outputPath, durationSec: duration, providerUsed: "gemini_browser" };
+          return { videoClipPath: outputPath, durationSec: duration, providerUsed: "gemini_omni_agent" };
         }
       }
     } catch (browserErr: any) {
-      console.warn("[Gemini Browser] Error, falling back:", browserErr.message);
+      console.warn("[Gemini Omni Agent] Browser automation notice:", browserErr.message);
+      // If user strictly requested Gemini, do not silently switch to random video
+      if (chosenProvider === "gemini_browser") {
+        throw new Error(
+          `Gemini Video Agent could not generate clip: ${browserErr.message}. ` +
+          `Please run 'launch_gemini_browser.bat' to ensure Google Chrome is open and logged into Google Gemini.`
+        );
+      }
     }
   }
 
-  // 2. Try Google Gemini Veo Video Generation (Veo 3.1 Flash-Lite / Fast)
+  // 2. Try Google Gemini Veo Video Generation API (Veo 3.1 Flash-Lite / Fast)
   const geminiKey = settings.geminiApiKey || process.env.GEMINI_API_KEY;
   if (
     (chosenProvider === "gemini" || chosenProvider === "auto") &&
@@ -622,7 +629,10 @@ export async function generateVideoFromPrompt(options: VideoClipOptions): Promis
       options.characterId
     );
     if (success && fs.existsSync(outputPath)) {
-      return { videoClipPath: outputPath, durationSec: duration, providerUsed: "gemini_veo_flash_lite" };
+      return { videoClipPath: outputPath, durationSec: duration, providerUsed: "gemini_veo_video" };
+    }
+    if (chosenProvider === "gemini") {
+      throw new Error("Gemini Veo Video API quota reached or unavailable. Use 'launch_gemini_browser.bat' for unlimited Gemini Omni web generation.");
     }
   }
 

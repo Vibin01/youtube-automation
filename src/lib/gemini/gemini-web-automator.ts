@@ -62,7 +62,12 @@ export async function getOrLaunchGeminiBrowser(onProgress?: (msg: string) => voi
   }
 
   // 2. Launch Chrome with persistent profile so Google logins & cookies are preserved
-  const chromePath = "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe";
+  const possiblePaths = [
+    "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
+    "C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe",
+    path.join(process.env.LOCALAPPDATA || "", "Google\\Chrome\\Application\\chrome.exe"),
+  ];
+  const chromePath = possiblePaths.find((p) => fs.existsSync(p)) || possiblePaths[0];
   const userProfile = process.env.USERPROFILE || "C:\\Users\\DELL";
   const profileDir = path.join(userProfile, ".gemini-browser-profile");
 
