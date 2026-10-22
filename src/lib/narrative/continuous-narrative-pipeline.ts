@@ -38,6 +38,24 @@ export interface NarrativePipelineParams {
   privacyStatus?: "public" | "unlisted" | "private";
   videoProviderOverride?: "gemini_browser" | "gemini" | "replicate" | "luma" | "fal" | "procedural" | "auto";
   onProgress?: (progressPercent: number, stepName: string, meta?: any) => void;
+  resumeProjectId?: string; // Explicit projectId or 'AUTO' to resume
+  forceNew?: boolean; // Force fresh project even if unfinished project exists
+}
+
+export interface PipelineCheckpoint {
+  projectId: string;
+  projectDir: string;
+  title: string;
+  status: "IN_PROGRESS" | "COMPLETED" | "FAILED";
+  totalScenes: number;
+  completedScenes: number[];
+  accumulatedDuration?: number;
+  masterVideoPath?: string;
+  masterThumbnailPath?: string;
+  masterScheduledTimeIST?: string;
+  masterYouTubeUrl?: string;
+  completedShorts?: number[];
+  lastUpdated: string;
 }
 
 export interface ScheduledShortItem {
@@ -600,6 +618,119 @@ export async function logAndExportSceneRegistry(params: {
   return { csvPath, jsonPath, markdownPath };
 }
 
+export function getCheckpointPath(projectDir: string): string {
+  return path.join(projectDir, "pipeline_checkpoint.json");
+}
+
+export function getActivePointerPath(baseOutputDir: string): string {
+  return path.join(baseOutputDir, "active_narrative_pipeline.json");
+}
+
+export function saveCheckpoint(projectDir: string, baseOutputDir: string, checkpoint: PipelineCheckpoint): void {
+  try {
+    fs.mkdirSync(projectDir, { recursive: true });
+    fs.mkdirSync(baseOutputDir, { recursive: true });
+    fs.writeFileSync(getCheckpointPath(projectDir), JSON.stringify(checkpoint, null, 2), "utf-8");
+    fs.writeFileSync(getActivePointerPath(baseOutputDir), JSON.stringify(checkpoint, null, 2), "utf-8");
+  } catch (err: any) {
+    console.warn("Checkpoint save notice:", err.message);
+  }
+}
+
+export function findIncompleteNarrativeProject(
+  baseOutputDir: string,
+  specificProjectId?: string
+): { projectId: string; projectDir: string; checkpoint?: PipelineCheckpoint } | null {
+  const projectsDir = path.join(baseOutputDir, "projects");
+  if (!fs.existsSync(projectsDir)) return null;
+
+  // 1. If a specific project was requested
+  if (specificProjectId && specificProjectId !== "AUTO") {
+    const candidateDir = path.join(projectsDir, specificProjectId);
+    if (fs.existsSync(candidateDir) && fs.existsSync(path.join(candidateDir, "scene_registry.json"))) {
+      let checkpoint: PipelineCheckpoint | undefined;
+      const cpFile = getCheckpointPath(candidateDir);
+      if (fs.existsSync(cpFile)) {
+        try { checkpoint = JSON.parse(fs.readFileSync(cpFile, "utf-8")); } catch {}
+      }
+      return { projectId: specificProjectId, projectDir: candidateDir, checkpoint };
+    }
+    return null;
+  }
+
+  // 2. Check active pointer file
+  const pointerPath = getActivePointerPath(baseOutputDir);
+  if (fs.existsSync(pointerPath)) {
+    try {
+      const activeCp: PipelineCheckpoint = JSON.parse(fs.readFileSync(pointerPath, "utf-8"));
+      if (
+        activeCp.projectId &&
+        activeCp.projectDir &&
+        activeCp.status !== "COMPLETED" &&
+        fs.existsSync(activeCp.projectDir) &&
+        fs.existsSync(path.join(activeCp.projectDir, "scene_registry.json"))
+      ) {
+        return { projectId: activeCp.projectId, projectDir: activeCp.projectDir, checkpoint: activeCp };
+      }
+    } catch {}
+  }
+
+  // 3. Scan projects directory for narrative_* folders, newest first
+  try {
+    const entries = fs.readdirSync(projectsDir, { withFileTypes: true })
+      .filter((e) => e.isDirectory() && e.name.startsWith("narrative_"))
+      .map((e) => {
+        const fullPath = path.join(projectsDir, e.name);
+        let mtime = 0;
+        try { mtime = fs.statSync(fullPath).mtimeMs; } catch {}
+        return { name: e.name, fullPath, mtime };
+      })
+      .sort((a, b) => b.mtime - a.mtime);
+
+    for (const entry of entries) {
+      const regPath = path.join(entry.fullPath, "scene_registry.json");
+      if (!fs.existsSync(regPath)) continue;
+
+      let regData: any = {};
+      try { regData = JSON.parse(fs.readFileSync(regPath, "utf-8")); } catch { continue; }
+      const totalScenes = regData.totalScenes || (regData.scenes ? regData.scenes.length : 0);
+
+      // Check checkpoint file if present
+      let cp: PipelineCheckpoint | undefined;
+      const cpFile = getCheckpointPath(entry.fullPath);
+      if (fs.existsSync(cpFile)) {
+        try { cp = JSON.parse(fs.readFileSync(cpFile, "utf-8")); } catch {}
+      }
+
+      if (cp && cp.status === "COMPLETED") {
+        continue; // Project was already completed
+      }
+
+      // Check rendered scenes in scenes/ folder
+      const scenesDir = path.join(entry.fullPath, "scenes");
+      let renderedCount = 0;
+      if (fs.existsSync(scenesDir)) {
+        const files = fs.readdirSync(scenesDir);
+        renderedCount = files.filter(
+          (f) => f.startsWith("scene_") && f.endsWith(".mp4") && fs.statSync(path.join(scenesDir, f)).size > 1024
+        ).length;
+      }
+
+      const masterFile = path.join(entry.fullPath, `${entry.name}_master_5min.mp4`);
+      const masterExists = fs.existsSync(masterFile) && fs.statSync(masterFile).size > 100000;
+
+      // If not all scenes are rendered OR master is not finished, this project is incomplete and can be resumed!
+      if (renderedCount < totalScenes || !masterExists) {
+        return { projectId: entry.name, projectDir: entry.fullPath, checkpoint: cp };
+      }
+    }
+  } catch (err: any) {
+    console.warn("Scan for narrative projects notice:", err.message);
+  }
+
+  return null;
+}
+
 /**
  * MASTER ENTRY POINT: Continuous End-to-End Automated Narrative Video Pipeline
  * Executes all 9 Steps in exact sequence with full fault-tolerance and zero external budget requirement.
@@ -629,105 +760,210 @@ export async function runContinuousNarrativePipeline(
   params.onProgress?.(2, "🚀 Step 1: Initializing Narrative Generation & Character Cast Selection...");
 
   try {
-    // -------------------------------------------------------------------------
-    // STEP 1: NARRATIVE GENERATION (Select Characters & Script 5-6 min Story)
-    // -------------------------------------------------------------------------
-    const selectedCast = selectCharacterCast(params.selectedCharacterIds);
-    console.log(`🎭 [Step 1] Selected Character Cast Ensemble (${selectedCast.length}): ${selectedCast.map((c) => `${c.name} (${c.id})`).join(", ")}`);
-
-    params.onProgress?.(5, `Generating cohesive 5-6 min narrative featuring ${selectedCast.map((c) => c.name).join(", ")}...`);
-
-    const narrative = await generateNarrativeScreenplay({
-      topicOrPrompt,
-      selectedCast,
-      targetDurationSec,
-      targetSceneDurationSec,
-      targetSceneCount,
-      language,
-    });
-
-    console.log(`📖 [Step 1 Completed] Narrative Title: "${narrative.title}" (${narrative.scenes.length} scenes planned)`);
-
-    // -------------------------------------------------------------------------
-    // STEP 2: SCENE BREAKDOWN & TIMING (8 to 10 seconds per scene, 30 to 45 total)
-    // -------------------------------------------------------------------------
-    params.onProgress?.(12, `Step 2: Breakdown verified into ${narrative.scenes.length} discrete 8-10s scenes...`);
-    const totalScriptDuration = narrative.scenes.reduce((acc, s) => acc + s.durationSec, 0);
-    console.log(`⏱️ [Step 2 Completed] Total Duration: ${totalScriptDuration.toFixed(1)}s across ${narrative.scenes.length} scenes (Avg ${(totalScriptDuration / narrative.scenes.length).toFixed(1)}s/scene)`);
-
-    // Setup working directories
+    // Setup working directories and resume detection
     const baseOutputDir = path.resolve(process.cwd(), settings.outputDir || "./output");
-    const timestampId = Date.now().toString(36);
-    const projectId = `narrative_${timestampId}`;
-    const projectDir = path.join(baseOutputDir, "projects", projectId);
-    const scenesDir = path.join(projectDir, "scenes");
-    const shortsDir = path.join(projectDir, "shorts");
-    const tempDir = path.join(projectDir, "temp");
 
-    fs.mkdirSync(projectDir, { recursive: true });
-    fs.mkdirSync(scenesDir, { recursive: true });
-    fs.mkdirSync(shortsDir, { recursive: true });
-    fs.mkdirSync(tempDir, { recursive: true });
+    let isResuming = false;
+    let existingCandidate: { projectId: string; projectDir: string; checkpoint?: PipelineCheckpoint } | null = null;
 
-    // -------------------------------------------------------------------------
-    // STEP 3: SCENE REGISTRY & TRACKING (Database + Central Spreadsheet Export)
-    // -------------------------------------------------------------------------
-    params.onProgress?.(15, "Step 3: Indexing and logging scene count, character assignments & prompts into Central Registry...");
+    if (!params.forceNew) {
+      existingCandidate = findIncompleteNarrativeProject(baseOutputDir, params.resumeProjectId);
+    }
 
-    // Create DB VideoProject
-    const project = await prisma.videoProject.create({
-      data: {
-        id: projectId,
+    let projectId: string;
+    let projectDir: string;
+    let scenesDir: string;
+    let shortsDir: string;
+    let tempDir: string;
+    let narrative: {
+      title: string;
+      hook: string;
+      synopsis: string;
+      description: string;
+      hashtags: string[];
+      thumbnailIdeas: string[];
+      scenes: NarrativeSceneDefinition[];
+    };
+    let selectedCast: CharacterDefinition[];
+    let totalScriptDuration = 0;
+    let registryPaths: { csvPath: string; jsonPath: string; markdownPath: string };
+
+    if (existingCandidate) {
+      isResuming = true;
+      projectId = existingCandidate.projectId;
+      projectDir = existingCandidate.projectDir;
+      scenesDir = path.join(projectDir, "scenes");
+      shortsDir = path.join(projectDir, "shorts");
+      tempDir = path.join(projectDir, "temp");
+
+      fs.mkdirSync(projectDir, { recursive: true });
+      fs.mkdirSync(scenesDir, { recursive: true });
+      fs.mkdirSync(shortsDir, { recursive: true });
+      fs.mkdirSync(tempDir, { recursive: true });
+
+      // Load saved scene registry
+      const regJsonPath = path.join(projectDir, "scene_registry.json");
+      const regData = JSON.parse(fs.readFileSync(regJsonPath, "utf-8"));
+
+      const dbProject = await prisma.videoProject.findUnique({
+        where: { id: projectId },
+        include: { script: true },
+      });
+
+      narrative = {
+        title: regData.title || dbProject?.title || "Narrative Video",
+        hook: dbProject?.script?.hook || "பாருங்க என்ன நடக்குதுன்னு!",
+        synopsis: dbProject?.script?.body || "5-minute Tamil comedy animation",
+        description: dbProject?.script?.description || regData.title || "",
+        hashtags: dbProject?.script?.hashtags ? JSON.parse(dbProject.script.hashtags) : ["#HappyKuttuSong", "#TamilComedy"],
+        thumbnailIdeas: dbProject?.script?.thumbnailIdeas ? JSON.parse(dbProject.script.thumbnailIdeas) : ["Comedy cartoon moment"],
+        scenes: regData.scenes,
+      };
+
+      const charIds = Array.from(new Set(narrative.scenes.map((s) => s.characterId)));
+      selectedCast = selectCharacterCast(charIds);
+      totalScriptDuration = narrative.scenes.reduce((acc, s) => acc + s.durationSec, 0);
+
+      registryPaths = {
+        csvPath: path.join(projectDir, "scene_registry.csv"),
+        jsonPath: regJsonPath,
+        markdownPath: path.join(projectDir, "scene_registry.md"),
+      };
+
+      const alreadyRenderedCount = fs.existsSync(scenesDir)
+        ? fs.readdirSync(scenesDir).filter((f) => f.startsWith("scene_") && f.endsWith(".mp4") && fs.statSync(path.join(scenesDir, f)).size > 1024).length
+        : 0;
+
+      console.log("\n==================================================================");
+      console.log(`🔄 [AUTO-RESUME ACTIVE] Detected In-Progress Project: "${projectId}"`);
+      console.log(`🎬 Title: "${narrative.title}"`);
+      console.log(`📊 Progress: ${alreadyRenderedCount} / ${narrative.scenes.length} scenes already rendered!`);
+      console.log(`⏩ Resuming from Scene ${alreadyRenderedCount + 1}...`);
+      console.log(`(Tip: Run with 'run_narrative_pipeline.bat --new' if you want a fresh project)`);
+      console.log("==================================================================\n");
+
+      params.onProgress?.(15, `Resuming project "${narrative.title}" (${alreadyRenderedCount}/${narrative.scenes.length} scenes ready)...`);
+    } else {
+      // -------------------------------------------------------------------------
+      // STEP 1: NARRATIVE GENERATION (Select Characters & Script 5-6 min Story)
+      // -------------------------------------------------------------------------
+      selectedCast = selectCharacterCast(params.selectedCharacterIds);
+      console.log(`🎭 [Step 1] Selected Character Cast Ensemble (${selectedCast.length}): ${selectedCast.map((c) => `${c.name} (${c.id})`).join(", ")}`);
+
+      params.onProgress?.(5, `Generating cohesive 5-6 min narrative featuring ${selectedCast.map((c) => c.name).join(", ")}...`);
+
+      narrative = await generateNarrativeScreenplay({
+        topicOrPrompt,
+        selectedCast,
+        targetDurationSec,
+        targetSceneDurationSec,
+        targetSceneCount,
+        language,
+      });
+
+      console.log(`📖 [Step 1 Completed] Narrative Title: "${narrative.title}" (${narrative.scenes.length} scenes planned)`);
+
+      // -------------------------------------------------------------------------
+      // STEP 2: SCENE BREAKDOWN & TIMING (8 to 10 seconds per scene, 30 to 45 total)
+      // -------------------------------------------------------------------------
+      params.onProgress?.(12, `Step 2: Breakdown verified into ${narrative.scenes.length} discrete 8-10s scenes...`);
+      totalScriptDuration = narrative.scenes.reduce((acc, s) => acc + s.durationSec, 0);
+      console.log(`⏱️ [Step 2 Completed] Total Duration: ${totalScriptDuration.toFixed(1)}s across ${narrative.scenes.length} scenes (Avg ${(totalScriptDuration / narrative.scenes.length).toFixed(1)}s/scene)`);
+
+      // Setup working directories
+      const timestampId = Date.now().toString(36);
+      projectId = `narrative_${timestampId}`;
+      projectDir = path.join(baseOutputDir, "projects", projectId);
+      scenesDir = path.join(projectDir, "scenes");
+      shortsDir = path.join(projectDir, "shorts");
+      tempDir = path.join(projectDir, "temp");
+
+      fs.mkdirSync(projectDir, { recursive: true });
+      fs.mkdirSync(scenesDir, { recursive: true });
+      fs.mkdirSync(shortsDir, { recursive: true });
+      fs.mkdirSync(tempDir, { recursive: true });
+
+      // Export Central Registry to CSV, JSON, and Markdown
+      registryPaths = await logAndExportSceneRegistry({
+        projectDir,
+        projectId,
         title: narrative.title,
-        description: narrative.description,
-        format: "LONG_FORM",
-        language: "Tamil",
-        status: "RENDERING",
-        tags: JSON.stringify(narrative.hashtags),
-      },
-    });
+        scenes: narrative.scenes,
+      });
 
-    // Create DB Script
-    await prisma.script.create({
-      data: {
-        videoProjectId: project.id,
+      // Initial checkpoint
+      saveCheckpoint(projectDir, baseOutputDir, {
+        projectId,
+        projectDir,
         title: narrative.title,
-        hook: narrative.hook,
-        body: narrative.synopsis,
-        callToAction: "Subscribe to Happy Kuttu Song for daily Tamil comedy episodes!",
-        description: narrative.description,
-        hashtags: JSON.stringify(narrative.hashtags),
-        thumbnailIdeas: JSON.stringify(narrative.thumbnailIdeas),
-        targetDurationSec: Math.round(totalScriptDuration),
-        isApproved: true,
-      },
-    });
-
-    // Create Scene DB records
-    for (const s of narrative.scenes) {
-      await prisma.scene.create({
-        data: {
-          videoProjectId: project.id,
-          orderIndex: s.orderIndex,
-          narration: s.narration,
-          visualPrompt: s.visualPrompt,
-          captionText: s.captionText,
-          duration: s.durationSec,
-          imagePath: s.referenceImagePath,
-          status: "PENDING",
-        },
+        status: "IN_PROGRESS",
+        totalScenes: narrative.scenes.length,
+        completedScenes: [],
+        lastUpdated: new Date().toISOString(),
       });
     }
 
-    // Export Central Registry to CSV, JSON, and Markdown
-    const registryPaths = await logAndExportSceneRegistry({
-      projectDir,
-      projectId: project.id,
-      title: narrative.title,
-      scenes: narrative.scenes,
+    // -------------------------------------------------------------------------
+    // STEP 3: CENTRAL REGISTRY & DB SYNCHRONIZATION
+    // -------------------------------------------------------------------------
+    params.onProgress?.(15, "Step 3: Indexing and logging scene count, character assignments & prompts into Central Registry...");
+
+    let project = await prisma.videoProject.findUnique({
+      where: { id: projectId },
+      include: { script: true },
     });
 
-    console.log(`✅ [Step 3 Completed] Central Database & Sheet Registry Created!`);
+    if (!project) {
+      project = await prisma.videoProject.create({
+        data: {
+          id: projectId,
+          title: narrative.title,
+          description: narrative.description,
+          format: "LONG_FORM",
+          language: "Tamil",
+          status: "RENDERING",
+          tags: JSON.stringify(narrative.hashtags),
+        },
+        include: { script: true },
+      });
+
+      await prisma.script.create({
+        data: {
+          videoProjectId: project.id,
+          title: narrative.title,
+          hook: narrative.hook,
+          body: narrative.synopsis,
+          callToAction: "Subscribe to Happy Kuttu Song for daily Tamil comedy episodes!",
+          description: narrative.description,
+          hashtags: JSON.stringify(narrative.hashtags),
+          thumbnailIdeas: JSON.stringify(narrative.thumbnailIdeas),
+          targetDurationSec: Math.round(totalScriptDuration),
+          isApproved: true,
+        },
+      });
+
+      for (const s of narrative.scenes) {
+        await prisma.scene.create({
+          data: {
+            videoProjectId: project.id,
+            orderIndex: s.orderIndex,
+            narration: s.narration,
+            visualPrompt: s.visualPrompt,
+            captionText: s.captionText,
+            duration: s.durationSec,
+            imagePath: s.referenceImagePath,
+            status: "PENDING",
+          },
+        });
+      }
+    } else {
+      await prisma.videoProject.update({
+        where: { id: projectId },
+        data: { status: "RENDERING" },
+      });
+    }
+
+    console.log(`✅ [Step 3 Completed] Central Database & Sheet Registry Verified!`);
 
     // -------------------------------------------------------------------------
     // STEP 4 & 5: AI VIDEO GENERATION, ASSET RETRIEVAL & BATCH PROCESSING
@@ -738,11 +974,28 @@ export async function runContinuousNarrativePipeline(
     const renderedScenePaths: string[] = [];
     let accumulatedDuration = 0;
     const totalScenes = narrative.scenes.length;
+    const completedSceneIndices: number[] = [];
 
     for (let i = 0; i < totalScenes; i++) {
       const scene = narrative.scenes[i];
       const sceneNum = i + 1;
       const progressPercent = Math.round(20 + (i / totalScenes) * 55); // 20% to 75%
+      const finalSceneClipPath = path.join(scenesDir, `scene_${String(sceneNum).padStart(2, "0")}.mp4`);
+
+      // CHECKPOINT VERIFICATION: Skip if already rendered
+      if (fs.existsSync(finalSceneClipPath) && fs.statSync(finalSceneClipPath).size > 1024) {
+        console.log(`⏩ [Scene ${sceneNum}/${totalScenes}] Already rendered (${path.basename(finalSceneClipPath)} - ${(fs.statSync(finalSceneClipPath).size / 1024 / 1024).toFixed(2)} MB). Skipping.`);
+        renderedScenePaths.push(finalSceneClipPath);
+        accumulatedDuration += scene.durationSec;
+        completedSceneIndices.push(sceneNum);
+
+        prisma.scene.updateMany({
+          where: { videoProjectId: project.id, orderIndex: scene.orderIndex, status: { not: "READY" } },
+          data: { status: "READY", videoClipPath: finalSceneClipPath, duration: scene.durationSec },
+        }).catch(() => {});
+
+        continue;
+      }
 
       params.onProgress?.(
         progressPercent,
@@ -754,31 +1007,33 @@ export async function runContinuousNarrativePipeline(
       console.log(`   📸 Ref Image: ${path.basename(scene.referenceImagePath || "none")}`);
       console.log(`   💬 Dialogue: ${scene.narration}`);
 
-      // 1. Synthesize audio narration via Edge-TTS
+      // 1. Synthesize audio narration via Edge-TTS (reuse audio if already created in temp)
       const audioPath = path.join(tempDir, `scene_${i}_audio.mp3`);
-      const ttsResult = await synthesizeSpeech({
-        text: scene.narration,
-        outputPath: audioPath,
-        language: "Tamil",
-      });
-
-      // Keep scene duration tight (between 8 and 10 seconds)
-      const sceneDuration = Math.max(8.0, Math.min(10.5, ttsResult.durationSec || scene.durationSec));
+      let sceneDuration = scene.durationSec;
+      if (!fs.existsSync(audioPath) || fs.statSync(audioPath).size < 100) {
+        const ttsResult = await synthesizeSpeech({
+          text: scene.narration,
+          outputPath: audioPath,
+          language: "Tamil",
+        });
+        sceneDuration = Math.max(8.0, Math.min(10.5, ttsResult.durationSec || scene.durationSec));
+      }
 
       // 2. Generate Prompt-Based Animated Video Clip with Character Reference Image
       const rawVideoClipPath = path.join(tempDir, `scene_${i}_video.mp4`);
-      await generateVideoFromPrompt({
-        prompt: scene.visualPrompt,
-        outputPath: rawVideoClipPath,
-        durationSec: sceneDuration,
-        format: "LONG_FORM",
-        captionText: scene.captionText,
-        characterId: scene.characterId,
-        providerOverride: providerOverride as any,
-      });
+      if (!fs.existsSync(rawVideoClipPath) || fs.statSync(rawVideoClipPath).size < 1024) {
+        await generateVideoFromPrompt({
+          prompt: scene.visualPrompt,
+          outputPath: rawVideoClipPath,
+          durationSec: sceneDuration,
+          format: "LONG_FORM",
+          captionText: scene.captionText,
+          characterId: scene.characterId,
+          providerOverride: providerOverride as any,
+        });
+      }
 
       // 3. Merge video clip with synchronized audio & format standard
-      const finalSceneClipPath = path.join(scenesDir, `scene_${String(sceneNum).padStart(2, "0")}.mp4`);
       await runFFmpeg([
         "-y",
         "-stream_loop",
@@ -803,6 +1058,7 @@ export async function runContinuousNarrativePipeline(
 
       renderedScenePaths.push(finalSceneClipPath);
       accumulatedDuration += sceneDuration;
+      completedSceneIndices.push(sceneNum);
 
       // Update scene DB record
       const dbScene = await prisma.scene.findFirst({
@@ -820,7 +1076,20 @@ export async function runContinuousNarrativePipeline(
         });
       }
 
-      console.log(`   ✅ Rendered asset saved: ${finalSceneClipPath}`);
+      // Save checkpoint after EVERY scene completes!
+      saveCheckpoint(projectDir, baseOutputDir, {
+        projectId,
+        projectDir,
+        title: narrative.title,
+        status: "IN_PROGRESS",
+        totalScenes,
+        completedScenes: completedSceneIndices,
+        accumulatedDuration,
+        lastUpdated: new Date().toISOString(),
+      });
+
+      console.log(`   ✅ [Scene ${sceneNum}/${totalScenes}] Rendered asset saved: ${finalSceneClipPath}`);
+      console.log(`   💾 Progress checkpoint updated (${completedSceneIndices.length}/${totalScenes} scenes)`);
     }
 
     console.log(`\n🎉 [Step 4 & 5 Completed] All ${totalScenes} scenes sequentially generated and saved! Total: ${accumulatedDuration.toFixed(1)}s`);
@@ -831,64 +1100,76 @@ export async function runContinuousNarrativePipeline(
     params.onProgress?.(76, "Step 6: Stitching all scene clips into seamless 5-to-6-minute Master Video...");
 
     const masterVideoPath = path.join(projectDir, `${projectId}_master_5min.mp4`);
-    const masterConcatTxt = path.join(tempDir, "master_scenes_concat.txt");
-    const concatEntries = renderedScenePaths
-      .map((f) => `file '${f.replace(/\\/g, "/")}'`)
-      .join("\n");
-    fs.writeFileSync(masterConcatTxt, concatEntries, "utf-8");
-
-    // Stitch seamlessly with audio normalization
-    await runFFmpeg([
-      "-y",
-      "-f",
-      "concat",
-      "-safe",
-      "0",
-      "-i",
-      masterConcatTxt,
-      "-c:v",
-      "libx264",
-      "-preset",
-      "fast",
-      "-crf",
-      "20",
-      "-c:a",
-      "aac",
-      "-b:a",
-      "192k",
-      "-pix_fmt",
-      "yuv420p",
-      masterVideoPath,
-    ]);
-
-    // High-CTR 16:9 Master Thumbnail
     const masterThumbnailPath = path.join(projectDir, `${projectId}_master_thumbnail.png`);
-    await generateThumbnail({
-      outputPath: masterThumbnailPath,
-      title: narrative.title,
-      hook: narrative.hook,
-      badge: "⭐ 5 MIN MASTER COMEDY ⭐",
-      format: "LONG_FORM",
-      language: "Tamil",
-      style: "cartoon",
-    });
 
-    const masterStats = fs.statSync(masterVideoPath);
-    await prisma.videoRender.create({
-      data: {
-        videoProjectId: project.id,
-        resolution: "1920x1080",
-        aspectRatio: "16:9",
-        durationSec: accumulatedDuration,
-        fileSizeBytes: masterStats.size,
-        outputPath: masterVideoPath,
-        thumbnailPath: masterThumbnailPath,
-        status: "COMPLETED",
-        progress: 100,
-      },
-    });
+    if (fs.existsSync(masterVideoPath) && fs.statSync(masterVideoPath).size > 100000) {
+      console.log(`⏩ [Step 6] Master Video already stitched (${masterVideoPath} - ${(fs.statSync(masterVideoPath).size / 1024 / 1024).toFixed(2)} MB). Skipping stitch.`);
+    } else {
+      const masterConcatTxt = path.join(tempDir, "master_scenes_concat.txt");
+      const concatEntries = renderedScenePaths
+        .map((f) => `file '${f.replace(/\\/g, "/")}'`)
+        .join("\n");
+      fs.writeFileSync(masterConcatTxt, concatEntries, "utf-8");
 
-    console.log(`🎬 [Step 6 Completed] Seamless 5-6 Min Master Video Stitched: ${masterVideoPath} (${accumulatedDuration.toFixed(1)}s)`);
+      // Stitch seamlessly with audio normalization
+      await runFFmpeg([
+        "-y",
+        "-f",
+        "concat",
+        "-safe",
+        "0",
+        "-i",
+        masterConcatTxt,
+        "-c:v",
+        "libx264",
+        "-preset",
+        "fast",
+        "-crf",
+        "20",
+        "-c:a",
+        "aac",
+        "-b:a",
+        "192k",
+        "-pix_fmt",
+        "yuv420p",
+        masterVideoPath,
+      ]);
+      console.log(`🎬 [Step 6 Completed] Seamless 5-6 Min Master Video Stitched: ${masterVideoPath} (${accumulatedDuration.toFixed(1)}s)`);
+    }
+
+    if (fs.existsSync(masterThumbnailPath) && fs.statSync(masterThumbnailPath).size > 10000) {
+      console.log(`⏩ [Step 6] Master Thumbnail already generated (${masterThumbnailPath}). Skipping.`);
+    } else {
+      await generateThumbnail({
+        outputPath: masterThumbnailPath,
+        title: narrative.title,
+        hook: narrative.hook,
+        badge: "⭐ 5 MIN MASTER COMEDY ⭐",
+        format: "LONG_FORM",
+        language: "Tamil",
+        style: "cartoon",
+      });
+    }
+
+    const masterStats = fs.existsSync(masterVideoPath) ? fs.statSync(masterVideoPath) : { size: 0 };
+    const existingRender = await prisma.videoRender.findFirst({
+      where: { videoProjectId: project.id, outputPath: masterVideoPath },
+    });
+    if (!existingRender) {
+      await prisma.videoRender.create({
+        data: {
+          videoProjectId: project.id,
+          resolution: "1920x1080",
+          aspectRatio: "16:9",
+          durationSec: accumulatedDuration,
+          fileSizeBytes: masterStats.size,
+          outputPath: masterVideoPath,
+          thumbnailPath: masterThumbnailPath,
+          status: "COMPLETED",
+          progress: 100,
+        },
+      });
+    }
 
     // -------------------------------------------------------------------------
     // STEP 7: LONG-FORM PUBLISHING SCHEDULE (Every Monday across target platforms)
@@ -911,52 +1192,67 @@ export async function runContinuousNarrativePipeline(
       }
     }
 
-    // Schedule Master in Database
-    const masterPubJob = await prisma.publishingJob.create({
-      data: {
+    // Check if master Video already has a PublishingJob that is PUBLISHED or SCHEDULED
+    let masterPubJob = await prisma.publishingJob.findFirst({
+      where: {
         videoProjectId: project.id,
-        channelId: channel?.id || null,
-        title: narrative.title,
-        description: `${narrative.title}\n\n${narrative.synopsis}\n\n${narrative.description}\n\n#HappyKuttuSong #TamilComedy #TamilStories #TamilAnimation`,
-        tags: JSON.stringify(narrative.hashtags),
-        privacyStatus,
-        scheduledPublishTime: mondaySchedule.dateUTC,
-        madeForKids: false,
-        status: "SCHEDULED",
+        status: { in: ["PUBLISHED", "SCHEDULED"] },
+        NOT: { title: { contains: "Part " } },
       },
     });
 
-    // If autoPublish is requested and channel is connected, upload to YouTube
-    if (autoPublish && channel) {
-      try {
-        console.log(`🚀 [Step 7] Uploading Master Video to YouTube channel "${channel.title}"...`);
-        const uploadRes = await uploadVideoToYouTube({
-          videoFilePath: masterVideoPath,
-          thumbnailFilePath: masterThumbnailPath,
-          title: narrative.title,
-          description: `${narrative.title}\n\n${narrative.synopsis}\n\n${narrative.description}\n\n#HappyKuttuSong #TamilComedy #TamilStories`,
-          tags: narrative.hashtags.map((t) => t.replace("#", "")),
-          privacyStatus,
-          scheduledPublishTime: mondaySchedule.dateUTC.toISOString(),
-          madeForKids: false,
-          language: "ta",
-          deleteAfterUpload: false, // keep for Step 8 slicing
-        });
-
-        masterYouTubeUrl = (uploadRes as any).videoUrl || (uploadRes as any).youtubeUrl;
-        masterYouTubeVideoId = (uploadRes as any).videoId || (uploadRes as any).youtubeVideoId;
-
-        await prisma.publishingJob.update({
-          where: { id: masterPubJob.id },
+    if (masterPubJob && (masterPubJob.youtubeVideoUrl || masterPubJob.youtubeVideoId)) {
+      masterYouTubeUrl = masterPubJob.youtubeVideoUrl || undefined;
+      masterYouTubeVideoId = masterPubJob.youtubeVideoId || undefined;
+      console.log(`⏩ [Step 7] Master Video already published/scheduled on YouTube! URL: ${masterYouTubeUrl}`);
+    } else {
+      if (!masterPubJob) {
+        masterPubJob = await prisma.publishingJob.create({
           data: {
-            status: "PUBLISHED",
-            youtubeVideoId: masterYouTubeVideoId,
-            youtubeVideoUrl: masterYouTubeUrl,
+            videoProjectId: project.id,
+            channelId: channel?.id || null,
+            title: narrative.title,
+            description: `${narrative.title}\n\n${narrative.synopsis}\n\n${narrative.description}\n\n#HappyKuttuSong #TamilComedy #TamilStories #TamilAnimation`,
+            tags: JSON.stringify(narrative.hashtags),
+            privacyStatus,
+            scheduledPublishTime: mondaySchedule.dateUTC,
+            madeForKids: false,
+            status: "SCHEDULED",
           },
         });
-        console.log(`🎉 [Step 7 Completed] Master Video Live/Scheduled on YouTube! URL: ${masterYouTubeUrl}`);
-      } catch (uploadErr: any) {
-        console.warn(`Notice: Master video saved locally: ${uploadErr.message}`);
+      }
+
+      if (autoPublish && channel) {
+        try {
+          console.log(`🚀 [Step 7] Uploading Master Video to YouTube channel "${channel.title}"...`);
+          const uploadRes = await uploadVideoToYouTube({
+            videoFilePath: masterVideoPath,
+            thumbnailFilePath: masterThumbnailPath,
+            title: narrative.title,
+            description: `${narrative.title}\n\n${narrative.synopsis}\n\n${narrative.description}\n\n#HappyKuttuSong #TamilComedy #TamilStories`,
+            tags: narrative.hashtags.map((t) => t.replace("#", "")),
+            privacyStatus,
+            scheduledPublishTime: mondaySchedule.dateUTC.toISOString(),
+            madeForKids: false,
+            language: "ta",
+            deleteAfterUpload: false, // keep for Step 8 slicing
+          });
+
+          masterYouTubeUrl = (uploadRes as any).videoUrl || (uploadRes as any).youtubeUrl;
+          masterYouTubeVideoId = (uploadRes as any).videoId || (uploadRes as any).youtubeVideoId;
+
+          await prisma.publishingJob.update({
+            where: { id: masterPubJob.id },
+            data: {
+              status: "PUBLISHED",
+              youtubeVideoId: masterYouTubeVideoId,
+              youtubeVideoUrl: masterYouTubeUrl,
+            },
+          });
+          console.log(`🎉 [Step 7 Completed] Master Video Live/Scheduled on YouTube! URL: ${masterYouTubeUrl}`);
+        } catch (uploadErr: any) {
+          console.warn(`Notice: Master video saved locally: ${uploadErr.message}`);
+        }
       }
     }
 
@@ -982,49 +1278,61 @@ export async function runContinuousNarrativePipeline(
       const shortVideoPath = path.join(shortsDir, `part_${String(partNumber).padStart(2, "0")}_30s_short.mp4`);
       const shortThumbPath = path.join(shortsDir, `part_${String(partNumber).padStart(2, "0")}_thumb.png`);
 
-      // 1. Slice vertical 9:16 (1080x1920) clip
-      await sliceShortClipFromVideo({
-        sourceVideoPath: masterVideoPath,
-        outputShortPath: shortVideoPath,
-        startSec,
-        durationSec: shortDurationTarget,
-      });
+      // 1. Slice vertical 9:16 clip (skip if already exists)
+      if (fs.existsSync(shortVideoPath) && fs.statSync(shortVideoPath).size > 10000) {
+        console.log(`⏩ [Step 8] Short Part ${partNumber} already sliced (${path.basename(shortVideoPath)}). Skipping slice.`);
+      } else {
+        await sliceShortClipFromVideo({
+          sourceVideoPath: masterVideoPath,
+          outputShortPath: shortVideoPath,
+          startSec,
+          durationSec: shortDurationTarget,
+        });
+      }
 
-      // 2. Generate custom Shorts Thumbnail
+      // 2. Custom Shorts Thumbnail (skip if already exists)
       const matchingScene = narrative.scenes[partIdx % narrative.scenes.length];
       const shortTitle = `${narrative.title} — Part ${partNumber} | ${matchingScene.captionText} #Shorts`;
-      await generateThumbnail({
-        outputPath: shortThumbPath,
-        title: `Part ${partNumber}: ${matchingScene.captionText}`,
-        hook: `Episode ${partNumber} of ${totalShortParts}`,
-        badge: slotInfo.slot === "MORNING" ? "☀️ 10:00 AM SHORT" : "🌙 5:00 PM SHORT",
-        format: "SHORTS",
-        language: "Tamil",
-        style: "cartoon",
-      });
+      if (!fs.existsSync(shortThumbPath) || fs.statSync(shortThumbPath).size < 1000) {
+        await generateThumbnail({
+          outputPath: shortThumbPath,
+          title: `Part ${partNumber}: ${matchingScene.captionText}`,
+          hook: `Episode ${partNumber} of ${totalShortParts}`,
+          badge: slotInfo.slot === "MORNING" ? "☀️ 10:00 AM SHORT" : "🌙 5:00 PM SHORT",
+          format: "SHORTS",
+          language: "Tamil",
+          style: "cartoon",
+        });
+      }
 
       const shortDesc = `Part ${partNumber} of our 5-Minute Comedy Masterpiece!\n\n${matchingScene.narration}\n\n🔔 Subscribe to Happy Kuttu Song for 2 episodes daily (10 AM & 5 PM)!\n\n#HappyKuttuSong #TamilShorts #TamilComedy #Shorts`;
 
-      // 3. Register episodic short in database
-      const shortPubJob = await prisma.publishingJob.create({
-        data: {
-          videoProjectId: project.id,
-          channelId: channel?.id || null,
-          title: shortTitle,
-          description: shortDesc,
-          tags: JSON.stringify(narrative.hashtags),
-          privacyStatus,
-          scheduledPublishTime: slotInfo.dateUTC,
-          madeForKids: false,
-          status: "SCHEDULED",
-        },
+      // 3. Register episodic short in database (skip if already registered)
+      let shortPubJob = await prisma.publishingJob.findFirst({
+        where: { videoProjectId: project.id, title: shortTitle },
       });
 
-      let shortUrl: string | undefined;
-      let shortVidId: string | undefined;
+      if (!shortPubJob) {
+        shortPubJob = await prisma.publishingJob.create({
+          data: {
+            videoProjectId: project.id,
+            channelId: channel?.id || null,
+            title: shortTitle,
+            description: shortDesc,
+            tags: JSON.stringify(narrative.hashtags),
+            privacyStatus,
+            scheduledPublishTime: slotInfo.dateUTC,
+            madeForKids: false,
+            status: "SCHEDULED",
+          },
+        });
+      }
 
-      // Publish Part 1 immediately if requested and channel available
-      if (partIdx === 0 && publishFirstShortNow && autoPublish && channel) {
+      let shortUrl: string | undefined = shortPubJob.youtubeVideoUrl || undefined;
+      let shortVidId: string | undefined = shortPubJob.youtubeVideoId || undefined;
+
+      // Publish Part 1 immediately if requested, channel available, and not already published
+      if (partIdx === 0 && publishFirstShortNow && autoPublish && channel && !shortUrl) {
         try {
           console.log(`🚀 [Step 8] Publishing Part 1 Short immediately to channel "${channel.title}"...`);
           const shortUpload = await uploadVideoToYouTube({
@@ -1036,7 +1344,7 @@ export async function runContinuousNarrativePipeline(
             privacyStatus,
             madeForKids: false,
             language: "ta",
-            deleteAfterUpload: true, // Auto-delete short file after upload
+            deleteAfterUpload: true,
           });
 
           shortUrl = (shortUpload as any).videoUrl || (shortUpload as any).youtubeUrl;
@@ -1096,6 +1404,21 @@ export async function runContinuousNarrativePipeline(
     await prisma.videoProject.update({
       where: { id: project.id },
       data: { status: "RENDERED" },
+    });
+
+    saveCheckpoint(projectDir, baseOutputDir, {
+      projectId: project.id,
+      projectDir,
+      title: narrative.title,
+      status: "COMPLETED",
+      totalScenes,
+      completedScenes: completedSceneIndices,
+      accumulatedDuration,
+      masterVideoPath,
+      masterThumbnailPath,
+      masterScheduledTimeIST: mondaySchedule.timeIST,
+      masterYouTubeUrl,
+      lastUpdated: new Date().toISOString(),
     });
 
     params.onProgress?.(100, "Step 9: Pipeline completed successfully! Zero-touch generation & scheduling verified.", {

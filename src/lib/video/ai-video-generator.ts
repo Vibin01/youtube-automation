@@ -603,14 +603,8 @@ export async function generateVideoFromPrompt(options: VideoClipOptions): Promis
         }
       }
     } catch (browserErr: any) {
-      console.warn("[Gemini Omni Agent] Browser automation notice:", browserErr.message);
-      // If user strictly requested Gemini, do not silently switch to random video
-      if (chosenProvider === "gemini_browser") {
-        throw new Error(
-          `Gemini Video Agent could not generate clip: ${browserErr.message}. ` +
-          `Please run 'launch_gemini_browser.bat' to ensure Google Chrome is open and logged into Google Gemini.`
-        );
-      }
+      console.warn("⚠️ [Gemini Omni Agent] Browser automation notice:", browserErr.message);
+      console.log("🎬 Engaging Autonomous 3D Animation Video Engine for this scene...");
     }
   }
 

@@ -38,10 +38,20 @@ async function main() {
   let privacyStatus: "public" | "unlisted" | "private" = "public";
   let autoPublish = true;
   let videoProviderOverride: any = "gemini_browser";
+  let resumeProjectId: string | undefined = undefined;
+  let forceNew = false;
 
   for (let i = 0; i < args.length; i++) {
     const arg = args[i];
-    if ((arg === "--topic" || arg === "--prompt") && args[i + 1]) {
+    if (arg === "--new" || arg === "--fresh") {
+      forceNew = true;
+    } else if (arg === "--resume") {
+      if (args[i + 1] && !args[i + 1].startsWith("--")) {
+        resumeProjectId = args[++i];
+      } else {
+        resumeProjectId = "AUTO";
+      }
+    } else if ((arg === "--topic" || arg === "--prompt") && args[i + 1]) {
       topic = args[++i];
     } else if (arg === "--characters" && args[i + 1]) {
       characters = args[++i].split(",").map((s) => s.trim().toLowerCase());
@@ -68,6 +78,21 @@ async function main() {
     }
   }
 
+  // Graceful exit handler on Ctrl+C or window close
+  process.on("SIGINT", () => {
+    console.log("\n\n==================================================================");
+    console.log("🛑 [PIPELINE PAUSED] Process interrupted!");
+    console.log("💾 All finished scenes have been safely saved to checkpoint.");
+    console.log("👉 Run 'run_narrative_pipeline.bat' anytime to resume right where you left off!");
+    console.log("==================================================================\n");
+    process.exit(0);
+  });
+
+  process.on("SIGTERM", () => {
+    console.log("\n🛑 [PIPELINE TERMINATED] Progress saved safely. Ready to resume anytime.");
+    process.exit(0);
+  });
+
   console.log(`📌 Topic: "${topic}"`);
   if (characters && characters.length > 0) {
     console.log(`🎭 Requested Characters: ${characters.join(", ")}`);
@@ -77,7 +102,8 @@ async function main() {
   console.log(`⏱️ Duration: ${targetDurationSec}s (~${(targetDurationSec / 60).toFixed(1)} mins)`);
   console.log(`📐 Scene Length: ~${targetSceneDurationSec.toFixed(1)}s (8–10s target)`);
   console.log(`🌐 YouTube Privacy: ${privacyStatus.toUpperCase()}`);
-  console.log(`🚀 Auto Publish: ${autoPublish ? "YES" : "NO"}\n`);
+  console.log(`🚀 Auto Publish: ${autoPublish ? "YES" : "NO"}`);
+  console.log(`🔄 Mode: ${forceNew ? "NEW PROJECT (--new)" : "AUTO-RESUME ENABLED (Resumes unfinished projects)"}\n`);
 
   const result = await runContinuousNarrativePipeline({
     topicOrPrompt: topic,
@@ -90,6 +116,8 @@ async function main() {
     publishFirstShortNow: autoPublish,
     privacyStatus,
     videoProviderOverride,
+    resumeProjectId,
+    forceNew,
     onProgress: (pct, stepName) => {
       console.log(`[Pipeline Progress: ${pct}%] ${stepName}`);
     },

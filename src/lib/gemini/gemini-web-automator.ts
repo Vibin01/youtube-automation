@@ -183,33 +183,43 @@ export async function generateGeminiWebVideoClip(
   // 1. Upload character image
   onProgress?.(`Uploading character image (${path.basename(imagePath)}) to Gemini...`);
 
-  // Ensure file inputs are available
-  let fileInputs = await page.$$('input[type="file"]');
-  if (fileInputs.length === 0) {
-    const uploadBtn = await page.$('button[aria-label*="Upload"], button[aria-label*="tools"]');
-    if (uploadBtn) {
-      await uploadBtn.click();
-      await new Promise((r) => setTimeout(r, 1000));
-      fileInputs = await page.$$('input[type="file"]');
-    }
-  }
-
-  // Find image file input
+  // Robust search with retry for Gemini's file upload input (handles dynamic Angular rendering)
   let imageInput: ElementHandle<HTMLInputElement> | null = null;
-  for (const input of fileInputs) {
-    const accept = await page.evaluate((el) => el.getAttribute("accept"), input);
-    if (accept && accept.includes("image")) {
-      imageInput = input as ElementHandle<HTMLInputElement>;
+  const findInputStart = Date.now();
+
+  while (Date.now() - findInputStart < 15000 && !imageInput) {
+    const fileInputs = await page.$$('input[type="file"]');
+    for (const input of fileInputs) {
+      const accept = await page.evaluate((el) => el.getAttribute("accept") || "", input);
+      if (accept.includes("image")) {
+        imageInput = input as ElementHandle<HTMLInputElement>;
+        break;
+      }
+    }
+
+    if (!imageInput && fileInputs.length > 0) {
+      imageInput = fileInputs[0] as ElementHandle<HTMLInputElement>;
       break;
     }
-  }
 
-  if (!imageInput && fileInputs.length > 0) {
-    imageInput = fileInputs[0] as ElementHandle<HTMLInputElement>;
+    if (!imageInput) {
+      // Try clicking 'Upload and tools' (+) button if input is not rendered yet
+      try {
+        const uploadBtn = await page.$(
+          'button[aria-label*="Upload" i], button[aria-label*="tools" i], button[aria-label*="Add" i], button[data-test-id*="upload" i]'
+        );
+        if (uploadBtn) {
+          await uploadBtn.click();
+        }
+      } catch {
+        // ignore
+      }
+      await new Promise((r) => setTimeout(r, 1000));
+    }
   }
 
   if (!imageInput) {
-    throw new Error("Could not find file upload input on Gemini web page.");
+    throw new Error("Could not find file upload input on Gemini web page after 15s wait.");
   }
 
   await imageInput.uploadFile(imagePath);
@@ -302,7 +312,7 @@ export async function generateGeminiWebVideoClip(
       const responses = document.querySelectorAll("message-content, model-response, .response-container");
       const lastResponse = responses[responses.length - 1];
       if (!lastResponse) return null;
-      const text = (lastResponse.innerText || "").toLowerCase();
+      const text = ((lastResponse as HTMLElement).innerText || lastResponse.textContent || "").toLowerCase();
       if (text.includes("video generation limit reached")) {
         return "Gemini Video Generation Limit Reached! Free daily video quota on this Google account has been exhausted.";
       }
