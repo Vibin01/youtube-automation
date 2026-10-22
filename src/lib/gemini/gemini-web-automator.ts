@@ -297,9 +297,12 @@ export async function generateGeminiWebVideoClip(
       onProgress?.(`Gemini video model is actively rendering clip... (${elapsedSec}s elapsed)`);
     }
 
-    // Check for Quota / Limit messages in Gemini response
+    // Check for Quota / Limit messages ONLY in the latest Gemini model response (not the sidebar history!)
     const limitError = await page.evaluate(() => {
-      const text = (document.body.innerText || "").toLowerCase();
+      const responses = document.querySelectorAll("message-content, model-response, .response-container");
+      const lastResponse = responses[responses.length - 1];
+      if (!lastResponse) return null;
+      const text = (lastResponse.innerText || "").toLowerCase();
       if (text.includes("video generation limit reached")) {
         return "Gemini Video Generation Limit Reached! Free daily video quota on this Google account has been exhausted.";
       }
@@ -320,7 +323,7 @@ export async function generateGeminiWebVideoClip(
         const src = v.currentSrc || v.src || v.querySelector("source")?.src;
         if (src && src.length > 5) {
           try {
-            const res = await fetch(src);
+            const res = await fetch(src, { credentials: "include" });
             const blob = await res.blob();
             const reader = new FileReader();
             return new Promise<{ ok: boolean; base64?: string; src: string }>((resolve) => {
@@ -338,7 +341,7 @@ export async function generateGeminiWebVideoClip(
       }
 
       // Also check for download buttons or video links
-      const downloadBtn = Array.from(document.querySelectorAll("a[download], button[aria-label*='Download'], a[href*='.mp4']")).find(
+      const downloadBtn = Array.from(document.querySelectorAll("a[download], button[aria-label*='Download' i], a[href*='.mp4']")).find(
         (el) => (el as HTMLAnchorElement).href?.includes(".mp4") || el.getAttribute("aria-label")?.toLowerCase().includes("video")
       );
       if (downloadBtn) {
